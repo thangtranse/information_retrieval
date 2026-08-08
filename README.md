@@ -11,8 +11,11 @@ Monorepo gồm FastAPI backend chạy Python 3.14 và React website. Hai phần 
 
 ```bash
 make setup
+cp backend/.env.example backend/.env
 cp ui/.env.example ui/.env
 ```
+
+Hai file `.env` chỉ dùng local và không được commit; thay đổi giá trị `APP_*` trong `backend/.env` khi cần cấu hình backend development.
 
 ## Run locally
 
