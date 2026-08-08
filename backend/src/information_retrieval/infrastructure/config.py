@@ -10,7 +10,12 @@ class Settings(BaseSettings):
     environment: str = "development"
     ui_origin: str = "http://localhost:5173"
 
-    model_config = SettingsConfigDict(env_prefix="APP_", frozen=True)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_prefix="APP_",
+        frozen=True,
+    )
 
 
 @lru_cache(maxsize=1)
