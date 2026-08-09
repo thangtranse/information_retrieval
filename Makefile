@@ -1,4 +1,4 @@
-.PHONY: setup dev-backend dev-ui lint typecheck build verify
+.PHONY: setup dev-backend dev-ui format format-check lint typecheck build verify
 
 setup:
 	uv python install 3.14
@@ -11,6 +11,14 @@ dev-backend:
 dev-ui:
 	cd ui && npm run dev
 
+format:
+	cd backend && uv run ruff format .
+	cd ui && npm run format
+
+format-check:
+	cd backend && uv run ruff format --check .
+	cd ui && npm run format:check
+
 lint:
 	cd backend && uv run ruff check .
 	cd ui && npm run lint
@@ -22,4 +30,4 @@ typecheck:
 build:
 	cd ui && npm run build
 
-verify: lint typecheck build
+verify: format-check lint typecheck build

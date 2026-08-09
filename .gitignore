@@ -15,4 +15,3 @@ ui/dist/
 !.env.example
 .DS_Store
 .idea/
-.vscode/

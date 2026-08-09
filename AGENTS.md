@@ -17,5 +17,7 @@
 
 - Use `uv` for Python installation, dependency management, locking, and command execution.
 - The required Python version is 3.14.
+- Use `uv run ruff format .` for Python formatting; do not use Black or an editor-bundled formatter.
+- Use the repository-local Prettier from `ui/node_modules` through `npm run format`; do not use an unpinned global Prettier.
 - Run backend commands from `backend/` and UI commands from `ui/`, or use the root `Makefile`.
-- Verification means lint, static type checking, build, and smoke checks. This repository intentionally has no automated test suite.
+- Run `make format` before committing and `make verify` to check formatting, lint, static types, and the UI build. This repository intentionally has no automated test suite.
