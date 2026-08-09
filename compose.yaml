@@ -1,0 +1,55 @@
+# Three-service stack: PostgreSQL with pgvector, the FastAPI backend, and the React website.
+# The backend waits for a healthy database so schema initialization at startup never races an
+# unready server, and article files are bind-mounted so crawled output survives container rebuilds.
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: information_retrieval
+      POSTGRES_PASSWORD: information_retrieval
+      POSTGRES_DB: information_retrieval
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Init scripts run only on first initialization of an empty data directory; the vector
+      # extension is enabled there so a fresh database is ready without a manual step.
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U information_retrieval -d information_retrieval"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "54322:5432"
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      APP_NAME: Information Retrieval API
+      APP_ENVIRONMENT: development
+      APP_UI_ORIGIN: http://localhost:5173
+      APP_DATABASE_URL: postgresql+psycopg://information_retrieval:information_retrieval@postgres:5432/information_retrieval
+      APP_CRAWLER_BASE_DOMAIN: https://vnexpress.net/
+      APP_CRAWLER_SEED_URLS: '["https://vnexpress.net/kinh-doanh"]'
+    volumes:
+      # Crawled article files live on the host so the CLI and API share one durable output
+      # directory regardless of which container wrote them.
+      - ./backend/data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  ui:
+    build:
+      context: ./ui
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres_data:
