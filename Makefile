@@ -1,4 +1,4 @@
-.PHONY: setup dev-backend dev-ui format format-check lint typecheck build verify
+.PHONY: setup dev-backend dev-ui crawl format format-check lint typecheck build verify
 
 setup:
 	uv python install 3.14
@@ -10,6 +10,9 @@ dev-backend:
 
 dev-ui:
 	cd ui && npm run dev
+
+crawl:
+	cd backend && uv run python -m information_retrieval.presentation.cli.crawl
 
 format:
 	cd backend && uv run ruff format .

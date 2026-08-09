@@ -90,12 +90,13 @@ Unique constraint trên canonical URL là lớp bảo vệ cuối cùng chống 
 Một anchor chỉ được xem là ứng viên bài viết khi thỏa tất cả điều kiện:
 
 - Có attribute `href` không rỗng.
-- Có attribute `data-itm-source`.
 - Có attribute `title` không rỗng.
 - Visible text sau normalize whitespace không rỗng.
 - Sau case-fold và normalize whitespace, `title` bằng visible text hoặc một giá trị chứa giá trị còn lại.
 - Canonical URL thuộc configured hostname và kết thúc bằng `.html`.
 
+Các analytics attribute như `data-itm-source` hoặc `data-medium` không thuộc contract vì
+VnExpress có thể thay đổi hoặc loại bỏ chúng mà không làm thay đổi bản chất của headline link.
 Các anchor không hợp lệ bị bỏ qua và không tạo database row.
 
 ## Database Model
@@ -116,10 +117,11 @@ Table creation là idempotent khi backend hoặc script khởi động. PostgreS
 
 ## Article Extraction Contract
 
-URL nội dung chỉ hợp lệ khi canonical path kết thúc bằng `.html`. Parser yêu cầu đúng container:
+URL nội dung chỉ hợp lệ khi canonical path kết thúc bằng `.html`. Parser chấp nhận container
+legacy có id và container hiện tại không có id:
 
 ```css
-article#fck_detail_gallery.fck_detail
+article#fck_detail_gallery.fck_detail, article.fck_detail
 ```
 
 Bên trong article, parser duyệt DOM order và tạo block từ:
@@ -186,14 +188,14 @@ Luồng xử lý:
 
 Script không tải lại các URL đã tồn tại trước khi lượt chạy bắt đầu. Quy tắc này tránh việc mỗi lần chạy seed lại tải toàn bộ kho bài cũ.
 
-CLI trả exit code `0` khi mọi seed và article vừa phát hiện đều xử lý thành công, kể cả trường hợp không có URL mới. CLI trả exit code `1` nếu có ít nhất một seed fetch failure hoặc article failure; các lỗi còn lại vẫn được xử lý và in summary trước khi tiến trình kết thúc.
+CLI trả exit code `0` khi mọi seed và article vừa phát hiện đều xử lý thành công. Một seed có `found > 0` nhưng `inserted=0` là repeat run hợp lệ vì mọi URL đã tồn tại. Một seed fetch thành công nhưng `found=0` được xem là selector drift, phải log `no eligible article URLs found` và làm CLI trả exit code `1`. CLI cũng trả exit code `1` nếu có ít nhất một seed fetch failure hoặc article failure; các lỗi còn lại vẫn được xử lý và in summary trước khi tiến trình kết thúc.
 
 Log format cung cấp tiến trình trực tiếp:
 
 ```text
 DISCOVER seed=https://vnexpress.net/kinh-doanh found=20 inserted=12 existing=8
 CRAWL id=42 status=completed path=data/articles/42.txt
-CRAWL id=43 status=failed reason="article#fck_detail_gallery.fck_detail not found"
+CRAWL id=43 status=failed reason="article container not found"
 SUMMARY seeds=1 discovered=20 inserted=12 completed=11 failed=1
 ```
 

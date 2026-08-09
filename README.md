@@ -33,6 +33,30 @@ make dev-ui
 
 Mở `http://localhost:5173`. API docs ở `http://localhost:8000/docs`; health endpoint ở `http://localhost:8000/api/v1/health`.
 
+Crawler cần PostgreSQL. Chạy toàn bộ stack bằng Docker Compose:
+
+```bash
+docker compose up -d postgres backend ui
+```
+
+## Crawler
+
+Batch script khám phá URL từ seed pages rồi tải tuần tự các bài mới trong cùng lần chạy:
+
+```bash
+make crawl
+```
+
+Tải lại một bài cụ thể qua API (luôn fetch lại, kể cả bài đã hoàn tất):
+
+```bash
+curl -X POST http://localhost:8000/api/v1/crawler/articles \
+  -H 'Content-Type: application/json' \
+  -d '{"url": "https://vnexpress.net/example.html"}'
+```
+
+File nội dung ghi UTF-8 dạng block `<s>` dưới `backend/data/articles/<id>.txt`; trạng thái xử lý lưu ở bảng `crawl_urls`. Cấu hình `APP_DATABASE_URL`, `APP_CRAWLER_BASE_DOMAIN` và `APP_CRAWLER_SEED_URLS` (JSON array) trong `backend/.env`.
+
 ## Architecture
 
 - `backend/domain`: model và invariant thuần Python.

@@ -10,6 +10,15 @@ class Settings(BaseSettings):
     environment: str = "development"
     ui_origin: str = "http://localhost:5173"
 
+    # Crawler runtime policy. The seed list is a JSON array so Pydantic parses it into a
+    # real list without a home-grown delimiter, and every crawl URL is scoped to this host.
+    database_url: str = (
+        "postgresql+psycopg://information_retrieval:information_retrieval"
+        "@localhost:54322/information_retrieval"
+    )
+    crawler_base_domain: str = "https://vnexpress.net/"
+    crawler_seed_urls: list[str] = ["https://vnexpress.net/kinh-doanh"]
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
