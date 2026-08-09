@@ -4,9 +4,7 @@ import { getHealth } from "../api/get-health";
 import type { Health } from "../model/health";
 
 type HealthState =
-  | { kind: "loading" }
-  | { kind: "ready"; health: Health }
-  | { kind: "error"; message: string };
+  { kind: "loading" } | { kind: "ready"; health: Health } | { kind: "error"; message: string };
 
 export function HealthStatus() {
   const [state, setState] = useState<HealthState>({ kind: "loading" });
@@ -36,9 +34,18 @@ export function HealthStatus() {
 
   return (
     <dl className="health-card">
-      <div><dt>Status</dt><dd>{state.health.status}</dd></div>
-      <div><dt>Service</dt><dd>{state.health.service}</dd></div>
-      <div><dt>Environment</dt><dd>{state.health.environment}</dd></div>
+      <div>
+        <dt>Status</dt>
+        <dd>{state.health.status}</dd>
+      </div>
+      <div>
+        <dt>Service</dt>
+        <dd>{state.health.service}</dd>
+      </div>
+      <div>
+        <dt>Environment</dt>
+        <dd>{state.health.environment}</dd>
+      </div>
     </dl>
   );
 }
