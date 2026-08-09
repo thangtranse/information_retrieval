@@ -9,6 +9,9 @@ __pycache__/
 ui/node_modules/
 ui/dist/
 
+# Crawler output (keep the directory via .gitkeep, ignore fetched articles)
+backend/data/articles/*.txt
+
 # Environment and editors
 .env
 .env.*
