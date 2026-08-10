@@ -11,6 +11,8 @@ ui/dist/
 
 # Crawler output (keep the directory via .gitkeep, ignore fetched articles)
 backend/data/articles/*.txt
+backend/data/embeddings/*
+!backend/data/embeddings/.gitkeep
 backend/data/models/py_vncorenlp/*
 !backend/data/models/py_vncorenlp/.gitkeep
 backend/data/models/vinai-phobert/*
