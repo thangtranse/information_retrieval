@@ -11,6 +11,10 @@ ui/dist/
 
 # Crawler output (keep the directory via .gitkeep, ignore fetched articles)
 backend/data/articles/*.txt
+backend/data/models/py_vncorenlp/*
+!backend/data/models/py_vncorenlp/.gitkeep
+backend/data/models/vinai-phobert/*
+!backend/data/models/vinai-phobert/.gitkeep
 
 # Environment and editors
 .env
@@ -18,3 +22,4 @@ backend/data/articles/*.txt
 !.env.example
 .DS_Store
 .idea/
+
