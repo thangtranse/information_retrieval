@@ -5,17 +5,20 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     Engine,
+    ForeignKey,
+    Integer,
     String,
     Text,
+    UniqueConstraint,
     create_engine,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
-    """Single declarative base for the one business table; kept minimal so the single-table
-    scope is not mistaken for an invitation to grow a generic ORM layer."""
+    """Keep schema ownership explicit without introducing a generic persistence framework."""
 
 
 class CrawlUrlRow(Base):
@@ -50,6 +53,54 @@ class CrawlUrlRow(Base):
     )
 
 
+class ProcessedParagraphRow(Base):
+    __tablename__ = "processed_paragraphs"
+    __table_args__ = (
+        UniqueConstraint(
+            "crawl_url_id",
+            "paragraph_num",
+            name="processed_paragraphs_crawl_num_key",
+        ),
+        CheckConstraint(
+            "docid = crawl_url_id",
+            name="processed_paragraphs_docid_matches_crawl_check",
+        ),
+        CheckConstraint(
+            "paragraph_num > 0",
+            name="processed_paragraphs_num_positive_check",
+        ),
+        CheckConstraint(
+            "source_word_count >= 0",
+            name="processed_paragraphs_word_count_check",
+        ),
+        CheckConstraint(
+            "block_type IN ('title', 'description', 'paragraph')",
+            name="processed_paragraphs_type_check",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    crawl_url_id: Mapped[int] = mapped_column(
+        ForeignKey("crawl_urls.id", ondelete="CASCADE"), nullable=False
+    )
+    docid: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    paragraph_num: Mapped[int] = mapped_column(Integer, nullable=False)
+    block_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    source_word_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_text: Mapped[str] = mapped_column(Text, nullable=False)
+    normalized_text: Mapped[str] = mapped_column(Text, nullable=False)
+    segmented_sentences: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
 def create_database_engine(database_url: str) -> Engine:
     """Build one engine per process. `pool_pre_ping` is enabled because the crawler and the
     Compose Postgres can outlive idle connections, and a stale socket must not fail a crawl."""
@@ -57,6 +108,5 @@ def create_database_engine(database_url: str) -> Engine:
 
 
 def initialize_schema(engine: Engine) -> None:
-    """Create the table idempotently at startup. `create_all` is a no-op when the table
-    already exists, which satisfies the spec's idempotent-init requirement without Alembic."""
+    """Create missing tables idempotently without adding migration machinery to this scope."""
     Base.metadata.create_all(engine)
