@@ -1,11 +1,18 @@
+from __future__ import annotations
+
 import argparse
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from information_retrieval.application.preprocess_crawled_articles import (
     PreprocessCrawledArticles,
 )
-from information_retrieval.domain.preprocessing import ArticlePreprocessingError
+from information_retrieval.application.preprocessing_ports import WordSegmenter
+from information_retrieval.domain.preprocessing import (
+    ArticlePreprocessingError,
+    PreprocessingMode,
+)
 from information_retrieval.infrastructure.article_paragraph_reader import (
     Utf8ArticleParagraphReader,
 )
@@ -15,7 +22,9 @@ from information_retrieval.infrastructure.database import create_database_engine
 from information_retrieval.infrastructure.processed_paragraph_repository import (
     PostgresProcessedParagraphRepository,
 )
-from information_retrieval.infrastructure.vncorenlp_segmenter import VnCoreNlpWordSegmenter
+
+if TYPE_CHECKING:
+    from information_retrieval.infrastructure.vncorenlp_segmenter import VnCoreNlpWordSegmenter
 
 _BACKEND_ROOT = Path(__file__).resolve().parents[4]
 
@@ -41,9 +50,16 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         type=_positive_crawl_id,
         help="process one completed crawl_urls row instead of the full completed corpus",
     )
+    parser.add_argument(
+        "--normalize-only",
+        action="store_true",
+        help="normalize source text and store empty segmented_sentences without VnCoreNLP",
+    )
     args = parser.parse_args(argv)
     if args.download_model_only and args.crawl_id is not None:
         parser.error("--crawl-id cannot be combined with --download-model-only")
+    if args.download_model_only and args.normalize_only:
+        parser.error("--normalize-only cannot be combined with --download-model-only")
     return args
 
 
@@ -54,15 +70,25 @@ def _resolve_model_dir(configured_path: Path) -> Path:
     return (_BACKEND_ROOT / configured_path).resolve()
 
 
+def _load_vncorenlp_adapter() -> type[VnCoreNlpWordSegmenter]:
+    """Delay Java-backed imports so normalize-only has no model/runtime dependency."""
+    from information_retrieval.infrastructure.vncorenlp_segmenter import (
+        VnCoreNlpWordSegmenter,
+    )
+
+    return VnCoreNlpWordSegmenter
+
+
 def run(argv: list[str] | None = None) -> int:
     """Run an explicit model download or a sequential, failure-isolated preprocessing batch."""
     args = _parse_args(argv)
     settings = get_settings()
-    model_dir = _resolve_model_dir(settings.segmenter_model_dir)
 
     if args.download_model_only:
+        adapter = _load_vncorenlp_adapter()
+        model_dir = _resolve_model_dir(settings.segmenter_model_dir)
         try:
-            downloaded = VnCoreNlpWordSegmenter.download_model(model_dir)
+            downloaded = adapter.download_model(model_dir)
         except ArticlePreprocessingError as error:
             print(f'MODEL status=failed reason="{error}"', file=sys.stderr)
             return 1
@@ -70,11 +96,15 @@ def run(argv: list[str] | None = None) -> int:
         print(f"MODEL {state} path={model_dir}")
         return 0
 
-    try:
-        segmenter = VnCoreNlpWordSegmenter(model_dir)
-    except ArticlePreprocessingError as error:
-        print(f'PREPROCESS status=failed reason="{error}"', file=sys.stderr)
-        return 1
+    mode: PreprocessingMode = "normalize_only" if args.normalize_only else "normalize_and_segment"
+    segmenter: WordSegmenter | None = None
+    if mode == "normalize_and_segment":
+        adapter = _load_vncorenlp_adapter()
+        try:
+            segmenter = adapter(_resolve_model_dir(settings.segmenter_model_dir))
+        except ArticlePreprocessingError as error:
+            print(f'PREPROCESS status=failed reason="{error}"', file=sys.stderr)
+            return 1
 
     engine = create_database_engine(settings.database_url)
     crawl_repository = PostgresCrawlUrlRepository(engine)
@@ -86,7 +116,7 @@ def run(argv: list[str] | None = None) -> int:
         segmenter=segmenter,
         processed_repository=processed_repository,
     )
-    summary = preprocess.execute(args.crawl_id)
+    summary = preprocess.execute(args.crawl_id, mode)
 
     if args.crawl_id is not None and summary.selected_documents == 0:
         print(f"PREPROCESS id={args.crawl_id} status=not-found", file=sys.stderr)

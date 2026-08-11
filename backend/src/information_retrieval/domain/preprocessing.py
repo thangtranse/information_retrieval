@@ -1,15 +1,19 @@
 import re
 from dataclasses import dataclass
+from typing import Literal
 
 from information_retrieval.domain.article import BlockType
+
+PreprocessingMode = Literal["normalize_and_segment", "normalize_only"]
 
 CHAR_MAP = {
     "“": '"',
     "”": '"',
     "‘": "'",
     "’": "'",
-    "–": "-",
-    "—": "-",
+    "-": " ",
+    "–": " ",
+    "—": " ",
 }
 
 
