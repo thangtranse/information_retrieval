@@ -24,4 +24,4 @@ backend/data/models/vinai-phobert/*
 !.env.example
 .DS_Store
 .idea/
-
+.worktrees/
