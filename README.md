@@ -6,6 +6,7 @@ Monorepo gồm FastAPI backend chạy Python 3.14 và React website. Hai phần 
 
 - `uv`
 - Node.js LTS và npm
+- Java và `wget` cho VnCoreNLP (`brew install wget openjdk` trên macOS)
 
 ## Setup
 
@@ -67,6 +68,33 @@ curl -X POST http://localhost:8000/api/v1/crawler/articles \
 ```
 
 File nội dung ghi UTF-8 dạng block `<s>` dưới `backend/data/articles/<id>.txt`; trạng thái xử lý lưu ở bảng `crawl_urls`. Cấu hình `APP_DATABASE_URL`, `APP_CRAWLER_BASE_DOMAIN` và `APP_CRAWLER_SEED_URLS` (JSON array) trong `backend/.env`.
+
+## Text preprocessing
+
+Tải model VnCoreNLP một lần. Command kiểm tra cache trước nên nếu đã có
+`VnCoreNLP-1.2.jar` và `models/wordsegmenter`, nó chỉ in `MODEL cached` và không gọi mạng:
+
+```bash
+make download-segmenter-model
+```
+
+Tiền xử lý tuần tự toàn bộ bài đã crawl thành công hoặc một bài cụ thể:
+
+```bash
+make preprocess
+make preprocess ARGS=--crawl-id=261
+```
+
+Command chỉ đọc các row `crawl_urls` có `status='completed'` và `file_path` khác null. Path
+`data/...` hoặc `backend/data/...` đều được resolve bên trong thư mục `backend/`; path thoát ra
+ngoài thư mục này bị từ chối.
+
+Mỗi block `<s>` được bỏ thẻ nhưng giữ `docid`, `num`, `wdcount`, `type` và thứ tự nguồn. Text
+được chuẩn hóa ký tự typography, xóa zero-width/BOM, đổi NBSP thành space, gom space/tab và
+loại literal `&gt;` trước khi VnCoreNLP word segmentation. Bảng `processed_paragraphs` liên kết
+với `crawl_urls.id` bằng `crawl_url_id` và lưu danh sách `segmented_sentences` dưới dạng JSONB.
+Chạy lại một document sẽ thay thế toàn bộ paragraph của document đó trong một transaction;
+model download cần network nhưng preprocessing bình thường không cần network.
 
 ## Architecture
 

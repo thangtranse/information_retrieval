@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,6 +19,7 @@ class Settings(BaseSettings):
     )
     crawler_base_domain: str = "https://vnexpress.net/"
     crawler_seed_urls: list[str] = ["https://vnexpress.net/kinh-doanh"]
+    segmenter_model_dir: Path = Path("data/models/py_vncorenlp")
 
     model_config = SettingsConfigDict(
         env_file=".env",
