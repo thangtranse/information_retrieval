@@ -16,12 +16,6 @@ class ArticleParagraphReader(Protocol):
         ...
 
 
-class WordSegmenter(Protocol):
-    def segment(self, text: str) -> list[str]:
-        """Hide the Java-backed NLP runtime behind a deterministic application boundary."""
-        ...
-
-
 class ProcessedParagraphRepository(Protocol):
     def initialize_schema(self) -> None:
         """Create the processing table idempotently for CLI execution against a fresh DB."""

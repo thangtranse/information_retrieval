@@ -1,4 +1,4 @@
-.PHONY: setup dev-backend dev-ui crawl download-segmenter-model preprocess format format-check lint typecheck build verify
+.PHONY: setup dev-backend dev-ui crawl download-segmenter-model preprocess segment format format-check lint typecheck build verify
 
 setup:
 	uv python install 3.14
@@ -15,10 +15,13 @@ crawl:
 	cd backend && uv run python -m information_retrieval.presentation.cli.crawl $(ARGS)
 
 download-segmenter-model:
-	cd backend && uv run python -m information_retrieval.presentation.cli.preprocess --download-model-only
+	cd backend && uv run python -m information_retrieval.presentation.cli.segment --download-model-only
 
 preprocess:
-	cd backend && uv run python -m information_retrieval.presentation.cli.preprocess $(ARGS)
+	cd backend && uv run python -m information_retrieval.presentation.cli.preprocess $(if $(CRAWL_ID),--crawl-id=$(CRAWL_ID),)
+
+segment:
+	cd backend && uv run python -m information_retrieval.presentation.cli.segment $(if $(CRAWL_ID),--crawl-id=$(CRAWL_ID),)
 
 format:
 	cd backend && uv run ruff format .
