@@ -1,10 +1,7 @@
 import re
 from dataclasses import dataclass
-from typing import Literal
 
 from information_retrieval.domain.article import BlockType
-
-PreprocessingMode = Literal["normalize_and_segment", "normalize_only"]
 
 CHAR_MAP = {
     "“": '"',
@@ -38,7 +35,6 @@ class ProcessedParagraph:
     block_type: BlockType
     source_text: str
     normalized_text: str
-    segmented_sentences: list[str]
 
 
 @dataclass(frozen=True, slots=True)

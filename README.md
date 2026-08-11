@@ -71,30 +71,30 @@ File nội dung ghi UTF-8 dạng block `<s>` dưới `backend/data/articles/<id>
 
 ## Text preprocessing
 
-Tải model VnCoreNLP một lần. Command kiểm tra cache trước nên nếu đã có
+Pipeline xử lý văn bản gồm ba bước độc lập. Đầu tiên, normalize toàn bộ bài đã crawl thành công
+hoặc một bài cụ thể; bước này không import, load hay yêu cầu VnCoreNLP:
+
+```bash
+make preprocess
+make preprocess CRAWL_ID=261
+```
+
+Tiếp theo, tải model VnCoreNLP một lần. Command kiểm tra cache trước nên nếu đã có
 `VnCoreNLP-1.2.jar` và `models/wordsegmenter`, nó chỉ in `MODEL cached` và không gọi mạng:
 
 ```bash
 make download-segmenter-model
 ```
 
-Tiền xử lý tuần tự toàn bộ bài đã crawl thành công hoặc một bài cụ thể:
+Cuối cùng, segment các row đã normalize và lưu mỗi sentence thành một row riêng:
 
 ```bash
-make preprocess
-make preprocess ARGS=--crawl-id=261
+make segment
+make segment CRAWL_ID=261
 ```
 
-Chỉ tạo `normalized_text` mà không load VnCoreNLP hoặc yêu cầu model cache:
-
-```bash
-make preprocess ARGS=--normalize-only
-make preprocess ARGS="--normalize-only --crawl-id=261"
-```
-
-Normalize-only lưu `segmented_sentences` thành JSONB empty array `[]`, kể cả khi document đã có
-segmentation từ lần chạy trước. Chạy lại command mặc định sẽ tạo lại segmentation. Trong cả hai
-mode, các dấu `-`, `–`, `—` đều được thay bằng khoảng trắng trước khi gom whitespace.
+Trong bước normalize, các dấu `-`, `–`, `—` đều được thay bằng khoảng trắng trước khi gom
+whitespace.
 
 Command chỉ đọc các row `crawl_urls` có `status='completed'` và `file_path` khác null. Path
 `data/...` hoặc `backend/data/...` đều được resolve bên trong thư mục `backend/`; path thoát ra
@@ -102,10 +102,14 @@ ngoài thư mục này bị từ chối.
 
 Mỗi block `<s>` được bỏ thẻ nhưng giữ `docid`, `num`, `wdcount`, `type` và thứ tự nguồn. Text
 được chuẩn hóa ký tự typography, xóa zero-width/BOM, đổi NBSP thành space, gom space/tab và
-loại literal `&gt;` trước khi VnCoreNLP word segmentation. Bảng `processed_paragraphs` liên kết
-với `crawl_urls.id` bằng `crawl_url_id` và lưu danh sách `segmented_sentences` dưới dạng JSONB.
-Chạy lại một document sẽ thay thế toàn bộ paragraph của document đó trong một transaction;
-model download cần network nhưng preprocessing bình thường không cần network.
+loại literal `&gt;`. Bảng `processed_paragraphs` chỉ lưu source và normalized text. Bảng
+`segmented_sentences` liên kết từng segment với parent paragraph và sao chép metadata cần thiết.
+
+Segmentation từ chối toàn bộ document nếu bất kỳ `normalized_text` nào vượt 200 whitespace
+words. Document lỗi giữ nguyên snapshot segment trước đó và batch tiếp tục với document kế tiếp;
+việc chia paragraph dài thành chunk chưa thuộc phạm vi hiện tại. Chạy lại một document hợp lệ sẽ
+thay thế toàn bộ segment của document đó trong một transaction. Model download cần network,
+nhưng preprocessing và segmentation thông thường không tự tải model.
 
 ## Architecture
 

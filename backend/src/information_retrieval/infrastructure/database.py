@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     Engine,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -13,7 +14,6 @@ from sqlalchemy import (
     create_engine,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -89,7 +89,71 @@ class ProcessedParagraphRow(Base):
     source_word_count: Mapped[int] = mapped_column(Integer, nullable=False)
     source_text: Mapped[str] = mapped_column(Text, nullable=False)
     normalized_text: Mapped[str] = mapped_column(Text, nullable=False)
-    segmented_sentences: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class SegmentedSentenceRow(Base):
+    __tablename__ = "segmented_sentences"
+    __table_args__ = (
+        UniqueConstraint(
+            "processed_paragraph_id",
+            "segment_num",
+            name="segmented_sentences_paragraph_num_key",
+        ),
+        Index(
+            "segmented_sentences_crawl_paragraph_segment_idx",
+            "crawl_url_id",
+            "paragraph_num",
+            "segment_num",
+        ),
+        CheckConstraint(
+            "docid = crawl_url_id",
+            name="segmented_sentences_docid_matches_crawl_check",
+        ),
+        CheckConstraint(
+            "paragraph_num > 0",
+            name="segmented_sentences_paragraph_num_positive_check",
+        ),
+        CheckConstraint(
+            "source_word_count >= 0",
+            name="segmented_sentences_source_word_count_check",
+        ),
+        CheckConstraint(
+            "segment_num > 0",
+            name="segmented_sentences_segment_num_positive_check",
+        ),
+        CheckConstraint(
+            "segment_word_count > 0",
+            name="segmented_sentences_word_count_positive_check",
+        ),
+        CheckConstraint(
+            "block_type IN ('title', 'description', 'paragraph')",
+            name="segmented_sentences_type_check",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    processed_paragraph_id: Mapped[int] = mapped_column(
+        ForeignKey("processed_paragraphs.id", ondelete="CASCADE"), nullable=False
+    )
+    crawl_url_id: Mapped[int] = mapped_column(
+        ForeignKey("crawl_urls.id", ondelete="CASCADE"), nullable=False
+    )
+    docid: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    paragraph_num: Mapped[int] = mapped_column(Integer, nullable=False)
+    block_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    source_word_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    segment_num: Mapped[int] = mapped_column(Integer, nullable=False)
+    segmented_text: Mapped[str] = mapped_column(Text, nullable=False)
+    segment_word_count: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -3,7 +3,7 @@ from typing import cast
 
 import py_vncorenlp  # type: ignore[import-untyped]
 
-from information_retrieval.domain.preprocessing import ArticlePreprocessingError
+from information_retrieval.domain.segmentation import ArticleSegmentationError
 
 
 class VnCoreNlpWordSegmenter:
@@ -11,13 +11,13 @@ class VnCoreNlpWordSegmenter:
 
     def __init__(self, model_dir: Path) -> None:
         if not self.is_model_installed(model_dir):
-            raise ArticlePreprocessingError(
+            raise ArticleSegmentationError(
                 f"VnCoreNLP model is missing at {model_dir}; run make download-segmenter-model"
             )
         try:
             self._segmenter = py_vncorenlp.VnCoreNLP(annotators=["wseg"], save_dir=str(model_dir))
         except Exception as error:
-            raise ArticlePreprocessingError(
+            raise ArticleSegmentationError(
                 f"cannot load VnCoreNLP model from {model_dir}: {error}"
             ) from error
 
@@ -36,7 +36,7 @@ class VnCoreNlpWordSegmenter:
         model_dir.mkdir(parents=True, exist_ok=True)
         py_vncorenlp.download_model(save_dir=str(model_dir))
         if not cls.is_model_installed(model_dir):
-            raise ArticlePreprocessingError(
+            raise ArticleSegmentationError(
                 f"VnCoreNLP download did not produce a usable model at {model_dir}"
             )
         return True
@@ -46,4 +46,4 @@ class VnCoreNlpWordSegmenter:
         try:
             return cast(list[str], self._segmenter.word_segment(text))
         except Exception as error:
-            raise ArticlePreprocessingError(f"VnCoreNLP segmentation failed: {error}") from error
+            raise ArticleSegmentationError(f"VnCoreNLP segmentation failed: {error}") from error
