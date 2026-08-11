@@ -94,7 +94,9 @@ make segment CRAWL_ID=261
 ```
 
 Trong bước normalize, các dấu `-`, `–`, `—` đều được thay bằng khoảng trắng trước khi gom
-whitespace.
+whitespace. Nếu một block vượt 200 normalized whitespace words, preprocessing tự tách block đó:
+ưu tiên dấu `.`, `?`, `!`, `:` gần giới hạn nhất và giữ dấu câu ở part phía trước; nếu một clause
+vẫn quá dài thì cắt theo ranh giới word.
 
 Command chỉ đọc các row `crawl_urls` có `status='completed'` và `file_path` khác null. Path
 `data/...` hoặc `backend/data/...` đều được resolve bên trong thư mục `backend/`; path thoát ra
@@ -102,14 +104,20 @@ ngoài thư mục này bị từ chối.
 
 Mỗi block `<s>` được bỏ thẻ nhưng giữ `docid`, `num`, `wdcount`, `type` và thứ tự nguồn. Text
 được chuẩn hóa ký tự typography, xóa zero-width/BOM, đổi NBSP thành space, gom space/tab và
-loại literal `&gt;`. Bảng `processed_paragraphs` chỉ lưu source và normalized text. Bảng
-`segmented_sentences` liên kết từng segment với parent paragraph và sao chép metadata cần thiết.
+loại literal `&gt;`. Mỗi processed part giữ `paragraph_num` gốc và dùng
+`paragraph_part_num` bắt đầu từ 1; `source_word_count`, `source_text` và `normalized_text` được
+tính riêng cho part. Bảng `segmented_sentences` liên kết từng segment với parent part và sao chép
+metadata cần thiết.
 
-Segmentation từ chối toàn bộ document nếu bất kỳ `normalized_text` nào vượt 200 whitespace
-words. Document lỗi giữ nguyên snapshot segment trước đó và batch tiếp tục với document kế tiếp;
-việc chia paragraph dài thành chunk chưa thuộc phạm vi hiện tại. Chạy lại một document hợp lệ sẽ
-thay thế toàn bộ segment của document đó trong một transaction. Model download cần network,
-nhưng preprocessing và segmentation thông thường không tự tải model.
+Preprocess log `PREPROCESS_SPLIT` bằng metadata, original word count và số part nhưng không in nội
+dung nguồn. Segmentation vẫn từ chối toàn bộ document nếu bất kỳ `normalized_text` nào vượt 200
+words, như một guard chống dữ liệu cũ hoặc lỗi splitter. Document lỗi giữ nguyên snapshot segment
+trước đó và batch tiếp tục với document kế tiếp. Chạy lại một document hợp lệ sẽ thay thế toàn bộ
+segment trong một transaction. Model download cần network, nhưng preprocessing và segmentation
+thông thường không tự tải model.
+
+Schema dùng `paragraph_part_num`; database cũ phải được recreate trước khi chạy pipeline vì
+`create_all()` không tự thêm cột hoặc thay unique constraint.
 
 ## Architecture
 

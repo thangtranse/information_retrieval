@@ -41,6 +41,7 @@ class PostgresSegmentedSentenceRepository:
                         crawl_url_id=sentence.crawl_url_id,
                         docid=sentence.docid,
                         paragraph_num=sentence.paragraph_num,
+                        paragraph_part_num=sentence.paragraph_part_num,
                         block_type=sentence.block_type,
                         source_word_count=sentence.source_word_count,
                         segment_num=sentence.segment_num,

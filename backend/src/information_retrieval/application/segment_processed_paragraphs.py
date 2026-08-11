@@ -5,8 +5,8 @@ from information_retrieval.application.segmentation_ports import (
     SegmentedSentenceRepository,
     WordSegmenter,
 )
+from information_retrieval.domain.preprocessing import MAX_PARAGRAPH_WORDS
 from information_retrieval.domain.segmentation import (
-    MAX_PARAGRAPH_WORDS,
     ArticleSegmentationError,
     SegmentationFailure,
     SegmentationSummary,
@@ -68,7 +68,8 @@ class SegmentProcessedParagraphs:
             normalized_word_count = len(paragraph.normalized_text.split())
             if normalized_word_count > MAX_PARAGRAPH_WORDS:
                 raise ArticleSegmentationError(
-                    f"paragraph num {paragraph.paragraph_num} has {normalized_word_count} "
+                    f"paragraph num {paragraph.paragraph_num} "
+                    f"part {paragraph.paragraph_part_num} has {normalized_word_count} "
                     f"normalized words; maximum is {MAX_PARAGRAPH_WORDS}"
                 )
 
@@ -77,12 +78,14 @@ class SegmentProcessedParagraphs:
             segmented_texts = self._segmenter.segment(paragraph.normalized_text)
             if not segmented_texts:
                 raise ArticleSegmentationError(
-                    f"no segmented sentences at paragraph num {paragraph.paragraph_num}"
+                    f"no segmented sentences at paragraph num {paragraph.paragraph_num} "
+                    f"part {paragraph.paragraph_part_num}"
                 )
             for segment_num, segmented_text in enumerate(segmented_texts, start=1):
                 if not segmented_text.strip():
                     raise ArticleSegmentationError(
-                        f"empty segmented sentence at paragraph num {paragraph.paragraph_num}"
+                        f"empty segmented sentence at paragraph num {paragraph.paragraph_num} "
+                        f"part {paragraph.paragraph_part_num}"
                     )
                 sentences.append(
                     SegmentedSentence(
@@ -90,6 +93,7 @@ class SegmentProcessedParagraphs:
                         crawl_url_id=paragraph.crawl_url_id,
                         docid=paragraph.docid,
                         paragraph_num=paragraph.paragraph_num,
+                        paragraph_part_num=paragraph.paragraph_part_num,
                         block_type=paragraph.block_type,
                         source_word_count=paragraph.source_word_count,
                         segment_num=segment_num,

@@ -2,8 +2,6 @@ from dataclasses import dataclass
 
 from information_retrieval.domain.article import BlockType
 
-MAX_PARAGRAPH_WORDS = 200
-
 
 class ArticleSegmentationError(Exception):
     """Expose expected per-document failures so one invalid article does not stop a batch."""
@@ -15,6 +13,7 @@ class StoredProcessedParagraph:
     crawl_url_id: int
     docid: int
     paragraph_num: int
+    paragraph_part_num: int
     block_type: BlockType
     source_word_count: int
     normalized_text: str
@@ -26,6 +25,7 @@ class SegmentedSentence:
     crawl_url_id: int
     docid: int
     paragraph_num: int
+    paragraph_part_num: int
     block_type: BlockType
     source_word_count: int
     segment_num: int
