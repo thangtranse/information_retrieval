@@ -31,6 +31,14 @@ class PostgresCrawlUrlRepository:
             session.flush()
             return self._to_domain(row)
 
+    def list_failed(self) -> list[CrawlUrl]:
+        """Use id ordering so explicit retry runs remain deterministic and easy to audit."""
+        with Session(self._engine) as session:
+            rows = session.scalars(
+                select(CrawlUrlRow).where(CrawlUrlRow.status == "failed").order_by(CrawlUrlRow.id)
+            ).all()
+            return [self._to_domain(row) for row in rows]
+
     def mark_completed(self, crawl_id: int, file_path: str) -> CrawlUrl:
         return self._update(crawl_id, status="completed", file_path=file_path, error_reason=None)
 

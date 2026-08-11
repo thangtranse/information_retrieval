@@ -1,3 +1,4 @@
+import argparse
 import sys
 
 from information_retrieval.application.crawl_article import ArticleCrawlFailed, CrawlArticle
@@ -13,14 +14,26 @@ from information_retrieval.infrastructure.vnexpress_discovery import VnExpressDi
 from information_retrieval.infrastructure.vnexpress_parser import VnExpressParser
 
 
-def run() -> int:
+def _parse_args(argv: list[str] | None) -> argparse.Namespace:
+    """Keep retries opt-in so the default crawl never changes historical failed records."""
+    parser = argparse.ArgumentParser(description="Discover and crawl VnExpress articles")
+    parser.add_argument(
+        "--retry-failed",
+        action="store_true",
+        help="retry every database row whose current status is failed",
+    )
+    return parser.parse_args(argv)
+
+
+def run(argv: list[str] | None = None) -> int:
     """Discover then sequentially crawl newly found articles, returning a process exit code.
 
-    The two-phase order (discover every seed, then crawl only URLs inserted this run) is what
-    prevents each run from re-downloading the entire historical backlog while still processing
-    everything genuinely new. Any seed or article failure is isolated so one bad URL never
+    Discovery always queues only URLs inserted this run. Historical failed rows join the queue
+    only when explicitly requested, preventing default runs from re-downloading old data while
+    keeping retries deliberate. Any seed or article failure is isolated so one bad URL never
     aborts the batch, and the exit code reflects whether the whole run was clean.
     """
+    args = _parse_args(argv)
     settings = get_settings()
     engine = create_database_engine(settings.database_url)
     repository = PostgresCrawlUrlRepository(engine)
@@ -73,9 +86,16 @@ def run() -> int:
             f"inserted={len(result.inserted)} existing={result.existing}"
         )
 
+    # Snapshot failed rows after discovery but before processing new URLs. A URL that fails
+    # later in this same run is therefore never retried immediately, preserving the no-auto-
+    # retry invariant while allowing an explicit retry of historical failures.
+    retry_rows = repository.list_failed() if args.retry_failed else []
+    if args.retry_failed:
+        print(f"RETRY queued={len(retry_rows)}")
+
     completed = 0
     failed = 0
-    for row in queued:
+    for row in [*queued, *retry_rows]:
         try:
             # Crawling by URL reuses the existing row, keeping a single code path shared with
             # the API rather than a CLI-only variant that could drift from it.
@@ -89,7 +109,8 @@ def run() -> int:
 
     print(
         f"SUMMARY seeds={len(settings.crawler_seed_urls)} discovered={discovered} "
-        f"inserted={len(queued)} completed={completed} failed={failed}"
+        f"inserted={len(queued)} retried={len(retry_rows)} "
+        f"completed={completed} failed={failed}"
     )
     return 1 if had_failure else 0
 

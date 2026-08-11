@@ -53,6 +53,10 @@ class CrawlUrlRepository(Protocol):
         """Insert a new canonical URL as pending and return the row with its assigned id."""
         ...
 
+    def list_failed(self) -> list[CrawlUrl]:
+        """Return failed rows in stable id order for an explicitly requested retry pass."""
+        ...
+
     def mark_completed(self, crawl_id: int, file_path: str) -> CrawlUrl:
         """Record a successful crawl: completed status, file path, cleared error, new time."""
         ...

@@ -12,7 +12,7 @@ dev-ui:
 	cd ui && npm run dev
 
 crawl:
-	cd backend && uv run python -m information_retrieval.presentation.cli.crawl
+	cd backend && uv run python -m information_retrieval.presentation.cli.crawl $(ARGS)
 
 format:
 	cd backend && uv run ruff format .

@@ -47,6 +47,17 @@ Batch script khám phá URL từ seed pages rồi tải tuần tự các bài m�
 make crawl
 ```
 
+Mặc định command không tải lại các URL đã có trong database. Để lấy toàn bộ record đang có
+`status='failed'` và thử tải lại tuần tự sau pha discovery, truyền flag qua biến `ARGS`:
+
+```bash
+make crawl ARGS=--retry-failed
+```
+
+Retry thành công chuyển record sang `completed`, ghi lại file và cập nhật `updated_at`. Nếu vẫn
+lỗi, record giữ trạng thái `failed` với `error_reason` và `updated_at` mới nhất. Flag không xử lý
+các record `completed`, và một URL mới thất bại trong chính lượt chạy hiện tại không bị retry ngay.
+
 Tải lại một bài cụ thể qua API (luôn fetch lại, kể cả bài đã hoàn tất):
 
 ```bash
