@@ -39,6 +39,18 @@ class PostgresCrawlUrlRepository:
             ).all()
             return [self._to_domain(row) for row in rows]
 
+    def list_completed(self, crawl_id: int | None = None) -> list[CrawlUrl]:
+        """Only expose durable files, in id order, so reruns are reproducible and auditable."""
+        with Session(self._engine) as session:
+            statement = select(CrawlUrlRow).where(
+                CrawlUrlRow.status == "completed",
+                CrawlUrlRow.file_path.is_not(None),
+            )
+            if crawl_id is not None:
+                statement = statement.where(CrawlUrlRow.id == crawl_id)
+            rows = session.scalars(statement.order_by(CrawlUrlRow.id)).all()
+            return [self._to_domain(row) for row in rows]
+
     def mark_completed(self, crawl_id: int, file_path: str) -> CrawlUrl:
         return self._update(crawl_id, status="completed", file_path=file_path, error_reason=None)
 
