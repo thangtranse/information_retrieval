@@ -124,11 +124,39 @@ legacy có id và container hiện tại không có id:
 article#fck_detail_gallery.fck_detail, article.fck_detail
 ```
 
+Parser luôn thử contract trên trước để không thay đổi hành vi crawl cũ. Chỉ khi cả hai selector
+không tìm thấy article, parser mới tìm fallback cho bài tường thuật:
+
+```css
+article.clearfix
+```
+
+Fallback chỉ hợp lệ khi article chứa một trong các content section sau:
+
+```css
+section#fck_detail_gallery, section.fck_detail
+```
+
+Điều kiện child section ngăn một wrapper `article.clearfix` không liên quan bị nhận nhầm làm
+nội dung bài viết.
+
+Một layout long-form khác vẫn khớp selector `article.fck_detail` nhưng dùng id riêng:
+
+```css
+article#medium_editor
+```
+
+Chỉ với layout này, parser mở rộng contract để nhận `h2.title` thành title và `<p>` không có
+class thành paragraph. Plain paragraph có ancestor `figcaption` là chú thích ảnh và bị loại.
+Phạm vi theo article id giữ cho quy tắc này không làm rộng contract của các layout cũ.
+
 Bên trong article, parser duyệt DOM order và tạo block từ:
 
 - `h1` thành `type="title"`.
 - `p.description` thành `type="description"`.
 - `p.Normal` thành `type="paragraph"`.
+- Trong `article#medium_editor`, `h2.title` thành `type="title"` và `<p>` không class, không
+  nằm trong `figcaption`, thành `type="paragraph"`.
 
 Text được lấy từ toàn bộ descendant text, decode HTML entities và normalize mọi whitespace sequence thành một space. Block rỗng sau normalize bị loại bỏ. Không giữ HTML con trong nội dung block.
 
@@ -168,6 +196,12 @@ CLI chạy từ `backend/`:
 uv run python -m information_retrieval.presentation.cli.crawl
 ```
 
+Retry các record thất bại là hành vi opt-in:
+
+```bash
+make crawl ARGS=--retry-failed
+```
+
 Luồng xử lý:
 
 1. Load và validate settings.
@@ -178,15 +212,21 @@ Luồng xử lý:
    - Extract và canonicalize eligible article URLs.
    - Insert URL chưa tồn tại với status `pending`; giữ nguyên bản ghi đã tồn tại.
 4. Giữ danh sách ID vừa insert trong lần chạy hiện tại.
-5. Với từng ID mới theo thứ tự khám phá:
+5. Nếu có `--retry-failed`, snapshot các row đang có status `failed` theo thứ tự ID. Snapshot
+   xảy ra trước pha xử lý để URL mới thất bại trong cùng lượt không bị retry ngay.
+6. Với từng ID mới theo thứ tự khám phá, sau đó từng failed ID trong retry snapshot:
    - Fetch và validate final redirected URL.
    - Parse article blocks.
    - Serialize và atomic write file.
    - Update row thành `completed`, lưu relative `file_path`, clear `error_reason`, update `updated_at`.
    - Nếu bất kỳ bước nào lỗi, update ngay row thành `failed`, lưu nguyên nhân, update `updated_at`, không retry và tiếp tục ID kế tiếp.
-6. In summary gồm seed count, discovered count, inserted count, completed count và failed count.
+7. In summary gồm seed count, discovered count, inserted count, retried count, completed count và failed count.
 
-Script không tải lại các URL đã tồn tại trước khi lượt chạy bắt đầu. Quy tắc này tránh việc mỗi lần chạy seed lại tải toàn bộ kho bài cũ.
+Mặc định script không tải lại các URL đã tồn tại trước khi lượt chạy bắt đầu. Quy tắc này tránh
+việc mỗi lần chạy seed lại tải toàn bộ kho bài cũ. Flag `--retry-failed` chỉ mở rộng queue bằng
+các row đang `failed`; không tải lại row `completed`. Retry thành công chuyển row sang `completed`,
+ghi lại file và cập nhật `updated_at`; retry thất bại giữ `failed`, thay `error_reason` và cập nhật
+`updated_at`.
 
 CLI trả exit code `0` khi mọi seed và article vừa phát hiện đều xử lý thành công. Một seed có `found > 0` nhưng `inserted=0` là repeat run hợp lệ vì mọi URL đã tồn tại. Một seed fetch thành công nhưng `found=0` được xem là selector drift, phải log `no eligible article URLs found` và làm CLI trả exit code `1`. CLI cũng trả exit code `1` nếu có ít nhất một seed fetch failure hoặc article failure; các lỗi còn lại vẫn được xử lý và in summary trước khi tiến trình kết thúc.
 
@@ -196,7 +236,7 @@ Log format cung cấp tiến trình trực tiếp:
 DISCOVER seed=https://vnexpress.net/kinh-doanh found=20 inserted=12 existing=8
 CRAWL id=42 status=completed path=data/articles/42.txt
 CRAWL id=43 status=failed reason="article container not found"
-SUMMARY seeds=1 discovered=20 inserted=12 completed=11 failed=1
+SUMMARY seeds=1 discovered=20 inserted=12 retried=3 completed=14 failed=1
 ```
 
 ## Manual Crawl API

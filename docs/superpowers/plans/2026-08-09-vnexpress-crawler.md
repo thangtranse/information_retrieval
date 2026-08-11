@@ -10,7 +10,8 @@
 
 ## Global Constraints
 
-- Chỉ hiện thực nội dung nằm trong "In scope" của spec; không concurrency, retry, embedding hay crawler UI.
+- Chỉ hiện thực nội dung nằm trong "In scope" của spec; không concurrency, automatic retry,
+  embedding hay crawler UI. Explicit `--retry-failed` chỉ chạy khi người dùng yêu cầu.
 - Không thêm automated tests (`AGENTS.md`).
 - Docstring/comment chỉ giải thích WHY.
 - Không thêm database abstraction ngoài port đang cần; không thêm Alembic ở phạm vi một bảng.
@@ -86,7 +87,9 @@ README.md                                            # crawler + compose docs
 - [x] `infrastructure/crawl_repository.py`: implement repository port.
 - [x] `infrastructure/http_source.py`: sync httpx fetch page/article, validate final redirected host.
 - [x] `infrastructure/vnexpress_discovery.py`: anchor contract → eligible hrefs.
-- [x] `infrastructure/vnexpress_parser.py`: legacy/current `article.fck_detail` selectors → blocks.
+- [x] `infrastructure/vnexpress_parser.py`: ưu tiên legacy/current `article.fck_detail`, hỗ trợ
+  scoped `article#medium_editor` plain paragraphs, sau đó fallback có kiểm soát cho
+  `article.clearfix > section.fck_detail` → blocks.
 - [x] `infrastructure/article_writer.py`: temp file + `os.replace`, trả relative `file_path`.
 
 ### 5. Presentation
@@ -95,7 +98,7 @@ README.md                                            # crawler + compose docs
 - [x] `http/dependencies.py`: build `CrawlArticle` với concrete adapters.
 - [x] `http/routes/crawler.py`: POST route map error → 422/502/500.
 - [x] `main.py`: include crawler router.
-- [x] `presentation/cli/crawl.py`: batch flow + log format + exit code.
+- [x] `presentation/cli/crawl.py`: batch flow + explicit `--retry-failed` + log format + exit code.
 
 ### 6. Deployment & docs
 
@@ -103,7 +106,7 @@ README.md                                            # crawler + compose docs
 - [x] `docker/postgres/init/00-extensions.sql` bật `vector`.
 - [x] `compose.yaml`: postgres + backend + ui, healthcheck, bind mount `./backend/data`.
 - [x] `backend/data/articles/.gitkeep`, `.gitignore` ignore `*.txt`.
-- [x] `Makefile` thêm `crawl` target; cập nhật `README.md`.
+- [x] `Makefile` thêm `crawl` target truyền `ARGS`; cập nhật `README.md` với hướng dẫn retry.
 
 ### 7. Verification
 
