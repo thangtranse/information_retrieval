@@ -7,6 +7,7 @@ from information_retrieval.application.preprocessing_ports import (
 from information_retrieval.domain.preprocessing import (
     ArticlePreprocessingError,
     PreprocessingFailure,
+    PreprocessingMode,
     PreprocessingSummary,
     ProcessedParagraph,
     normalize_article_text,
@@ -18,7 +19,7 @@ class PreprocessCrawledArticles:
         self,
         crawl_repository: CompletedCrawlRepository,
         reader: ArticleParagraphReader,
-        segmenter: WordSegmenter,
+        segmenter: WordSegmenter | None,
         processed_repository: ProcessedParagraphRepository,
     ) -> None:
         self._crawl_repository = crawl_repository
@@ -26,8 +27,17 @@ class PreprocessCrawledArticles:
         self._segmenter = segmenter
         self._processed_repository = processed_repository
 
-    def execute(self, crawl_id: int | None = None) -> PreprocessingSummary:
+    def execute(
+        self,
+        crawl_id: int | None = None,
+        mode: PreprocessingMode = "normalize_and_segment",
+    ) -> PreprocessingSummary:
         """Isolate expected document failures while preserving prior successful snapshots."""
+        if mode == "normalize_and_segment" and self._segmenter is None:
+            raise ArticlePreprocessingError(
+                "word segmenter is required for normalize_and_segment mode"
+            )
+
         crawl_rows = self._crawl_repository.list_completed(crawl_id)
         processed_documents = 0
         stored_paragraphs = 0
@@ -44,11 +54,15 @@ class PreprocessCrawledArticles:
                         raise ArticlePreprocessingError(
                             f"empty normalized text at paragraph num {source.num}"
                         )
-                    segmented_sentences = self._segmenter.segment(normalized_text)
-                    if not segmented_sentences:
-                        raise ArticlePreprocessingError(
-                            f"no segmented sentences at paragraph num {source.num}"
-                        )
+                    if mode == "normalize_only":
+                        segmented_sentences: list[str] = []
+                    else:
+                        assert self._segmenter is not None
+                        segmented_sentences = self._segmenter.segment(normalized_text)
+                        if not segmented_sentences:
+                            raise ArticlePreprocessingError(
+                                f"no segmented sentences at paragraph num {source.num}"
+                            )
                     processed.append(
                         ProcessedParagraph(
                             docid=source.docid,

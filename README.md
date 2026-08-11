@@ -85,6 +85,17 @@ make preprocess
 make preprocess ARGS=--crawl-id=261
 ```
 
+Chỉ tạo `normalized_text` mà không load VnCoreNLP hoặc yêu cầu model cache:
+
+```bash
+make preprocess ARGS=--normalize-only
+make preprocess ARGS="--normalize-only --crawl-id=261"
+```
+
+Normalize-only lưu `segmented_sentences` thành JSONB empty array `[]`, kể cả khi document đã có
+segmentation từ lần chạy trước. Chạy lại command mặc định sẽ tạo lại segmentation. Trong cả hai
+mode, các dấu `-`, `–`, `—` đều được thay bằng khoảng trắng trước khi gom whitespace.
+
 Command chỉ đọc các row `crawl_urls` có `status='completed'` và `file_path` khác null. Path
 `data/...` hoặc `backend/data/...` đều được resolve bên trong thư mục `backend/`; path thoát ra
 ngoài thư mục này bị từ chối.
