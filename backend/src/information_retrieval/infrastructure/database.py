@@ -59,7 +59,8 @@ class ProcessedParagraphRow(Base):
         UniqueConstraint(
             "crawl_url_id",
             "paragraph_num",
-            name="processed_paragraphs_crawl_num_key",
+            "paragraph_part_num",
+            name="processed_paragraphs_crawl_num_part_key",
         ),
         CheckConstraint(
             "docid = crawl_url_id",
@@ -68,6 +69,10 @@ class ProcessedParagraphRow(Base):
         CheckConstraint(
             "paragraph_num > 0",
             name="processed_paragraphs_num_positive_check",
+        ),
+        CheckConstraint(
+            "paragraph_part_num > 0",
+            name="processed_paragraphs_part_num_positive_check",
         ),
         CheckConstraint(
             "source_word_count >= 0",
@@ -85,6 +90,7 @@ class ProcessedParagraphRow(Base):
     )
     docid: Mapped[int] = mapped_column(BigInteger, nullable=False)
     paragraph_num: Mapped[int] = mapped_column(Integer, nullable=False)
+    paragraph_part_num: Mapped[int] = mapped_column(Integer, nullable=False)
     block_type: Mapped[str] = mapped_column(String(16), nullable=False)
     source_word_count: Mapped[int] = mapped_column(Integer, nullable=False)
     source_text: Mapped[str] = mapped_column(Text, nullable=False)
@@ -109,9 +115,10 @@ class SegmentedSentenceRow(Base):
             name="segmented_sentences_paragraph_num_key",
         ),
         Index(
-            "segmented_sentences_crawl_paragraph_segment_idx",
+            "segmented_sentences_crawl_paragraph_part_segment_idx",
             "crawl_url_id",
             "paragraph_num",
+            "paragraph_part_num",
             "segment_num",
         ),
         CheckConstraint(
@@ -121,6 +128,10 @@ class SegmentedSentenceRow(Base):
         CheckConstraint(
             "paragraph_num > 0",
             name="segmented_sentences_paragraph_num_positive_check",
+        ),
+        CheckConstraint(
+            "paragraph_part_num > 0",
+            name="segmented_sentences_paragraph_part_num_positive_check",
         ),
         CheckConstraint(
             "source_word_count >= 0",
@@ -149,6 +160,7 @@ class SegmentedSentenceRow(Base):
     )
     docid: Mapped[int] = mapped_column(BigInteger, nullable=False)
     paragraph_num: Mapped[int] = mapped_column(Integer, nullable=False)
+    paragraph_part_num: Mapped[int] = mapped_column(Integer, nullable=False)
     block_type: Mapped[str] = mapped_column(String(16), nullable=False)
     source_word_count: Mapped[int] = mapped_column(Integer, nullable=False)
     segment_num: Mapped[int] = mapped_column(Integer, nullable=False)

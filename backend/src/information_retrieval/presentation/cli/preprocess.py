@@ -58,9 +58,17 @@ def run(argv: list[str] | None = None) -> int:
             f'PREPROCESS id={failure.crawl_url_id} status=failed reason="{failure.reason}"',
             file=sys.stderr,
         )
+    for split in summary.splits:
+        print(
+            f"PREPROCESS_SPLIT id={split.crawl_url_id} "
+            f"paragraph={split.paragraph_num} words={split.original_word_count} "
+            f"parts={split.generated_parts}"
+        )
     print(
         f"SUMMARY selected={summary.selected_documents} "
         f"processed={summary.processed_documents} paragraphs={summary.stored_paragraphs} "
+        f"split_paragraphs={summary.split_paragraphs} "
+        f"generated_parts={summary.generated_parts} "
         f"failed={len(summary.failures)}"
     )
     return 1 if summary.failures else 0

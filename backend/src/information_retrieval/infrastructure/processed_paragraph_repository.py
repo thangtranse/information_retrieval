@@ -46,6 +46,7 @@ class PostgresProcessedParagraphRepository:
                         crawl_url_id=crawl_url_id,
                         docid=paragraph.docid,
                         paragraph_num=paragraph.num,
+                        paragraph_part_num=paragraph.paragraph_part_num,
                         block_type=paragraph.block_type,
                         source_word_count=paragraph.source_word_count,
                         source_text=paragraph.source_text,
@@ -65,6 +66,7 @@ class PostgresProcessedParagraphRepository:
                 statement.order_by(
                     ProcessedParagraphRow.crawl_url_id,
                     ProcessedParagraphRow.paragraph_num,
+                    ProcessedParagraphRow.paragraph_part_num,
                 )
             ).all()
             return [
@@ -73,6 +75,7 @@ class PostgresProcessedParagraphRepository:
                     crawl_url_id=row.crawl_url_id,
                     docid=row.docid,
                     paragraph_num=row.paragraph_num,
+                    paragraph_part_num=row.paragraph_part_num,
                     block_type=cast(BlockType, row.block_type),
                     source_word_count=row.source_word_count,
                     normalized_text=row.normalized_text,
