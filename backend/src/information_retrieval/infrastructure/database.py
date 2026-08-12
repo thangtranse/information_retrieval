@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
@@ -166,6 +167,27 @@ class SegmentedSentenceRow(Base):
     segment_num: Mapped[int] = mapped_column(Integer, nullable=False)
     segmented_text: Mapped[str] = mapped_column(Text, nullable=False)
     segment_word_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class SentenceEmbeddingRow(Base):
+    __tablename__ = "sentence_embeddings"
+
+    # The sentence id is also the primary key because v1 intentionally keeps exactly one
+    # active embedding per segmented sentence; model_name records how it was produced.
+    segmented_sentence_id: Mapped[int] = mapped_column(
+        ForeignKey("segmented_sentences.id", ondelete="CASCADE"), primary_key=True
+    )
+    model_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    embedding: Mapped[list[float]] = mapped_column(VECTOR(768), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

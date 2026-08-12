@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     crawler_base_domain: str = "https://vnexpress.net/"
     crawler_seed_urls: list[str] = ["https://vnexpress.net/kinh-doanh"]
     segmenter_model_dir: Path = Path("data/models/py_vncorenlp")
+    phobert_model_name: str = "vinai/phobert-base"
+    phobert_model_dir: Path = Path("data/models/vinai-phobert")
+    embedding_batch_size: int = 16
+    embedding_max_length: int = 256
 
     model_config = SettingsConfigDict(
         env_file=".env",
