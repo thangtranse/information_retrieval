@@ -1,14 +1,14 @@
 import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
-import { Activity, Search } from "lucide-react";
+import { Activity, FilePlus2, Search } from "lucide-react";
 import { Link } from "react-router";
 
-import { useAutoResizeTextarea } from "@/features/search/model/use-auto-resize-textarea";
 import { useSearchForm } from "@/features/search/model/use-search-form";
 import { SearchForm } from "@/features/search/ui/SearchForm";
+import { useAutoResizeTextarea } from "@/shared/hooks/use-auto-resize-textarea";
 
 export function SearchPage() {
   const searchForm = useSearchForm();
-  const textareaRef = useAutoResizeTextarea(searchForm.query);
+  const textareaRef = useAutoResizeTextarea(searchForm.query, { minRows: 3, maxRows: 10 });
 
   const handleQueryChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     searchForm.updateQuery(event.target.value);
@@ -62,13 +62,22 @@ export function SearchPage() {
           textareaRef={textareaRef}
         />
 
-        <Link
-          className="mx-auto inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          to="/health-check"
-        >
-          <Activity aria-hidden="true" className="size-4" />
-          Kiểm tra hệ thống
-        </Link>
+        <nav aria-label="Điều hướng phụ" className="flex flex-wrap justify-center gap-5">
+          <Link
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            to="/articles/import"
+          >
+            <FilePlus2 aria-hidden="true" className="size-4" />
+            Nhập bài viết
+          </Link>
+          <Link
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            to="/health-check"
+          >
+            <Activity aria-hidden="true" className="size-4" />
+            Kiểm tra hệ thống
+          </Link>
+        </nav>
       </div>
     </main>
   );
