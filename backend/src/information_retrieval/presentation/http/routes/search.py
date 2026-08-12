@@ -1,5 +1,6 @@
 import logging
 from time import perf_counter
+from urllib.parse import urlsplit, urlunsplit
 
 from fastapi import APIRouter, HTTPException, status
 
@@ -26,6 +27,14 @@ logger = logging.getLogger("uvicorn.error")
 def _sentence_preview(text: str) -> str:
     """Bound one-line previews so useful matches cannot flood or forge terminal log lines."""
     return " ".join(text.split())[:160]
+
+
+def _url_preview(url: str) -> str:
+    """Strip userinfo at the log edge because persisted canonical URLs may retain credentials."""
+    parts = urlsplit(url)
+    host_and_port = parts.netloc.rsplit("@", maxsplit=1)[-1]
+    safe_url = urlunsplit((parts.scheme, host_and_port, parts.path, parts.query, parts.fragment))
+    return _sentence_preview(safe_url)
 
 
 def _to_response(result: ArticleSearchResult) -> SearchArticlesResponse:
@@ -97,7 +106,7 @@ def search_articles(request: SearchArticlesRequest) -> SearchArticlesResponse:
             article.crawl_url_id,
             article.score,
             article.matched_article_sentence.id,
-            _sentence_preview(article.url),
+            _url_preview(article.url),
             _sentence_preview(article.matched_article_sentence.text),
         )
     return response
