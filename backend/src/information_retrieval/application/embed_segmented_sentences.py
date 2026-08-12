@@ -89,6 +89,10 @@ class EmbedSegmentedSentences:
                     raise SentenceEmbeddingError(
                         f"sentence {sentence.id} embedding contains a non-finite value"
                     )
+                if not any(value != 0.0 for value in vector):
+                    raise SentenceEmbeddingError(
+                        f"sentence {sentence.id} embedding is a zero vector"
+                    )
                 records.append(SentenceEmbedding(sentence.id, vector))
 
         if not records:

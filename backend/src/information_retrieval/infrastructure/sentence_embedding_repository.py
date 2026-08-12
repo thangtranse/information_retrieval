@@ -1,6 +1,7 @@
 from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import Engine, func, select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from information_retrieval.domain.embedding import (
@@ -11,6 +12,7 @@ from information_retrieval.domain.embedding import (
 from information_retrieval.infrastructure.database import (
     SegmentedSentenceRow,
     SentenceEmbeddingRow,
+    ensure_sentence_embedding_cosine_index,
     initialize_schema,
 )
 
@@ -23,7 +25,19 @@ class PostgresSentenceEmbeddingRepository:
 
     def initialize_schema(self) -> None:
         """Reuse shared metadata so vector storage follows the existing schema lifecycle."""
-        initialize_schema(self._engine)
+        try:
+            initialize_schema(self._engine)
+        except SQLAlchemyError as error:
+            raise SentenceEmbeddingError(
+                f"database schema initialization failed: {error}"
+            ) from error
+
+    def ensure_cosine_index(self) -> None:
+        """Build HNSW after writes so existing databases gain the index without recreation."""
+        try:
+            ensure_sentence_embedding_cosine_index(self._engine)
+        except SQLAlchemyError as error:
+            raise SentenceEmbeddingError(f"cosine index creation failed: {error}") from error
 
     def list_for_embedding(self, crawl_id: int | None = None) -> list[StoredSegmentedSentence]:
         """Use stable document and sentence ordering for reproducible model batches."""
@@ -77,5 +91,5 @@ class PostgresSentenceEmbeddingRepository:
         try:
             with Session(self._engine) as session, session.begin():
                 session.execute(statement)
-        except Exception as error:
+        except SQLAlchemyError as error:
             raise SentenceEmbeddingError(f"database write failed: {error}") from error

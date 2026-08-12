@@ -199,6 +199,13 @@ class SentenceEmbeddingRow(Base):
     )
 
 
+_SENTENCE_EMBEDDING_COSINE_INDEX_SQL = (
+    "CREATE INDEX IF NOT EXISTS sentence_embeddings_embedding_cosine_hnsw_idx "
+    "ON sentence_embeddings USING hnsw (embedding vector_cosine_ops) "
+    "WITH (m = 16, ef_construction = 64)"
+)
+
+
 def create_database_engine(database_url: str) -> Engine:
     """Build one engine per process. `pool_pre_ping` is enabled because the crawler and the
     Compose Postgres can outlive idle connections, and a stale socket must not fail a crawl."""
@@ -208,3 +215,9 @@ def create_database_engine(database_url: str) -> Engine:
 def initialize_schema(engine: Engine) -> None:
     """Create missing tables idempotently without adding migration machinery to this scope."""
     Base.metadata.create_all(engine)
+
+
+def ensure_sentence_embedding_cosine_index(engine: Engine) -> None:
+    """Create the ANN index explicitly because create_all cannot upgrade an existing table."""
+    with engine.begin() as connection:
+        connection.exec_driver_sql(_SENTENCE_EMBEDDING_COSINE_INDEX_SQL)
