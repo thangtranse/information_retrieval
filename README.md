@@ -154,9 +154,10 @@ model trong bộ nhớ. Query đã normalize, câu segmented, token, mask và ve
 API search không ghi query hay kết quả vào database và các câu query sau xử lý được trả trực tiếp
 trong response.
 
-Terminal ghi một dòng `SEARCH` tóm tắt cho mỗi request thành công/thất bại và một dòng
-`SEARCH_RESULT` cho mỗi article trả về. Log không chứa query đầy đủ, token, mask, vector, database
-URL, model path hoặc credential trong URL.
+Với mỗi request đã qua schema validation và đi vào handler, terminal ghi một dòng `SEARCH` tóm
+tắt thành công/thất bại và một dòng `SEARCH_RESULT` cho mỗi article trả về. Request bị từ chối ở
+tầng schema (HTTP 422) chỉ có access log thông thường, không có dòng `SEARCH`. Log không chứa query
+đầy đủ, token, mask, vector, database URL, model path hoặc credential trong URL.
 
 ## Architecture
 
