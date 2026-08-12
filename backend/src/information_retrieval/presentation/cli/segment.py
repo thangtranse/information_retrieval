@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from information_retrieval.application.segment_processed_paragraphs import (
@@ -11,6 +10,7 @@ from information_retrieval.application.segment_processed_paragraphs import (
 from information_retrieval.domain.segmentation import ArticleSegmentationError
 from information_retrieval.infrastructure.config import get_settings
 from information_retrieval.infrastructure.database import create_database_engine
+from information_retrieval.infrastructure.model_paths import resolve_model_dir
 from information_retrieval.infrastructure.processed_paragraph_repository import (
     PostgresProcessedParagraphRepository,
 )
@@ -22,8 +22,6 @@ if TYPE_CHECKING:
     from information_retrieval.infrastructure.vncorenlp_segmenter import (
         VnCoreNlpWordSegmenter,
     )
-
-_BACKEND_ROOT = Path(__file__).resolve().parents[4]
 
 
 def _positive_crawl_id(value: str) -> int:
@@ -53,13 +51,6 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     return args
 
 
-def _resolve_model_dir(configured_path: Path) -> Path:
-    """Anchor relative model caches to backend regardless of the caller's directory."""
-    if configured_path.is_absolute():
-        return configured_path.resolve()
-    return (_BACKEND_ROOT / configured_path).resolve()
-
-
 def _load_vncorenlp_adapter() -> type[VnCoreNlpWordSegmenter]:
     """Delay Java-backed imports until the segmentation-specific CLI actually needs them."""
     from information_retrieval.infrastructure.vncorenlp_segmenter import (
@@ -74,7 +65,7 @@ def run(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     settings = get_settings()
     adapter = _load_vncorenlp_adapter()
-    model_dir = _resolve_model_dir(settings.segmenter_model_dir)
+    model_dir = resolve_model_dir(settings.segmenter_model_dir)
 
     if args.download_model_only:
         try:
