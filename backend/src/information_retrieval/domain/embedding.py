@@ -8,6 +8,18 @@ class SentenceEmbeddingError(Exception):
 
 
 @dataclass(frozen=True, slots=True)
+class SentenceText:
+    sentence_id: int
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class EncodedSentence:
+    sentence_id: int
+    embedding: list[float]
+
+
+@dataclass(frozen=True, slots=True)
 class StoredSegmentedSentence:
     id: int
     crawl_url_id: int
