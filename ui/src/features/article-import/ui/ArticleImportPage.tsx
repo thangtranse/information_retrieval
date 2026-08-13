@@ -58,17 +58,11 @@ export function ArticleImportPage() {
         </Button>
 
         <header className="mx-auto max-w-2xl space-y-5 text-center">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-neutral-950 text-white shadow-lg shadow-black/10">
-            <FileInput aria-hidden="true" className="size-5" />
-          </div>
           <div className="space-y-3">
             <p className="inline-flex items-center gap-2 text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">
               <DatabaseZap aria-hidden="true" className="size-4" />
               Nguồn dữ liệu
             </p>
-            <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-5xl">
-              Nhập bài viết
-            </h1>
             <p className="mx-auto max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
               Cung cấp liên kết để crawl hoặc dán nội dung bài báo để chuẩn bị cho pipeline tìm
               kiếm.

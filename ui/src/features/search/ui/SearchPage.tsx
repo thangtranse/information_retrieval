@@ -37,9 +37,6 @@ export function SearchPage() {
       />
       <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col gap-8 sm:gap-10">
         <header className="mx-auto max-w-2xl space-y-5 text-center">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-neutral-950 text-white shadow-lg shadow-black/10">
-            <Search aria-hidden="true" className="size-5" />
-          </div>
           <div className="space-y-3">
             <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">
               Information Retrieval
