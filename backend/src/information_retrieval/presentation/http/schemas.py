@@ -106,3 +106,48 @@ class ArticlePreviewResponse(BaseModel):
     description: str | None
     image_url: str | None
     site_name: str | None
+
+
+class DistributionResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    min: float | None
+    p25: float | None
+    median: float | None
+    mean: float | None
+    p75: float | None
+    p95: float | None
+    max: float | None
+
+
+class CorpusDistributionsResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    word_count: DistributionResponse
+    sentence_count: DistributionResponse
+
+
+class TopWordResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    word: str
+    count: int
+
+
+class SpecialCharacterResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    character: str
+    code_point: str
+    unicode_name: str
+    count: int
+
+
+class CorpusStatisticsResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    document_count: int
+    normalized: CorpusDistributionsResponse
+    segmented: CorpusDistributionsResponse
+    top_words: list[TopWordResponse]
+    special_characters: list[SpecialCharacterResponse]
