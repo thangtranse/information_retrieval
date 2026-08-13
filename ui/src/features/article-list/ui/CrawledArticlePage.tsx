@@ -45,9 +45,6 @@ export function CrawledArticlePage() {
         </Button>
 
         <header className="space-y-4">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-neutral-950 text-white shadow-lg shadow-black/10">
-            <Newspaper aria-hidden="true" className="size-5" />
-          </div>
           <div className="space-y-2">
             <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">
               Kho dữ liệu
