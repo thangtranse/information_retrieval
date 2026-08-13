@@ -1,5 +1,5 @@
 import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
-import { Activity, FilePlus2, Search } from "lucide-react";
+import { Activity, FilePlus2, Newspaper, Search } from "lucide-react";
 import { Link } from "react-router";
 
 import { useSearchForm } from "@/features/search/model/use-search-form";
@@ -63,6 +63,13 @@ export function SearchPage() {
         />
 
         <nav aria-label="Điều hướng phụ" className="flex flex-wrap justify-center gap-5">
+          <Link
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            to="/articles/crawled"
+          >
+            <Newspaper aria-hidden="true" className="size-4" />
+            Bài viết đã crawl
+          </Link>
           <Link
             className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             to="/articles/import"

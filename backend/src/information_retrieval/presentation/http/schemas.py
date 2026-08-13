@@ -29,3 +29,27 @@ class CrawlArticleResponse(BaseModel):
     file_path: str | None
     error_reason: str | None
     updated_at: datetime
+
+
+class CrawledArticleItemResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: int
+    url: str
+    updated_at: datetime
+
+
+class CrawledArticlePageResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    items: list[CrawledArticleItemResponse]
+    next_cursor: str | None
+
+
+class ArticlePreviewResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    title: str | None
+    description: str | None
+    image_url: str | None
+    site_name: str | None

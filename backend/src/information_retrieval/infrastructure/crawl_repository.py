@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import cast
 
-from sqlalchemy import Engine, select
+from sqlalchemy import Engine, literal, select, tuple_
 from sqlalchemy.orm import Session
 
 from information_retrieval.domain.crawl import CrawlStatus, CrawlUrl
@@ -50,6 +51,43 @@ class PostgresCrawlUrlRepository:
                 statement = statement.where(CrawlUrlRow.id == crawl_id)
             rows = session.scalars(statement.order_by(CrawlUrlRow.id)).all()
             return [self._to_domain(row) for row in rows]
+
+    def list_completed_after(
+        self,
+        *,
+        limit: int,
+        updated_before: datetime | None,
+        id_before: int | None,
+    ) -> list[CrawlUrl]:
+        """Use a deterministic two-column keyset so equal timestamps cannot skip rows."""
+        with Session(self._engine) as session:
+            statement = select(CrawlUrlRow).where(
+                CrawlUrlRow.status == "completed",
+                CrawlUrlRow.file_path.is_not(None),
+            )
+            if updated_before is not None and id_before is not None:
+                statement = statement.where(
+                    tuple_(CrawlUrlRow.updated_at, CrawlUrlRow.id)
+                    < tuple_(literal(updated_before), literal(id_before))
+                )
+            rows = session.scalars(
+                statement.order_by(CrawlUrlRow.updated_at.desc(), CrawlUrlRow.id.desc()).limit(
+                    limit
+                )
+            ).all()
+            return [self._to_domain(row) for row in rows]
+
+    def get_completed_by_id(self, crawl_id: int) -> CrawlUrl | None:
+        """Preview only durable completed rows, never pending or failed crawl attempts."""
+        with Session(self._engine) as session:
+            row = session.scalar(
+                select(CrawlUrlRow).where(
+                    CrawlUrlRow.id == crawl_id,
+                    CrawlUrlRow.status == "completed",
+                    CrawlUrlRow.file_path.is_not(None),
+                )
+            )
+            return self._to_domain(row) if row is not None else None
 
     def mark_completed(self, crawl_id: int, file_path: str) -> CrawlUrl:
         return self._update(crawl_id, status="completed", file_path=file_path, error_reason=None)

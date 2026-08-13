@@ -1,15 +1,30 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
 from information_retrieval.application.crawl_article import ArticleCrawlFailed, CrawlArticle
+from information_retrieval.application.get_article_preview import (
+    CrawledArticleNotFound,
+    GetArticlePreview,
+)
+from information_retrieval.application.list_crawled_articles import (
+    InvalidCrawledArticleCursor,
+    ListCrawledArticles,
+)
 from information_retrieval.domain.crawl import CrawlUrl
-from information_retrieval.domain.errors import InvalidArticleUrl
-from information_retrieval.presentation.http.dependencies import get_crawl_article_use_case
+from information_retrieval.domain.errors import InvalidArticleUrl, UpstreamFetchError
+from information_retrieval.presentation.http.dependencies import (
+    get_article_preview_use_case,
+    get_crawl_article_use_case,
+    get_list_crawled_articles_use_case,
+)
 from information_retrieval.presentation.http.schemas import (
+    ArticlePreviewResponse,
     CrawlArticleRequest,
     CrawlArticleResponse,
+    CrawledArticleItemResponse,
+    CrawledArticlePageResponse,
 )
 
 router = APIRouter(prefix="/crawler", tags=["crawler"])
@@ -32,6 +47,52 @@ def _to_response(row: CrawlUrl) -> CrawlArticleResponse:
         file_path=row.file_path,
         error_reason=row.error_reason,
         updated_at=row.updated_at,
+    )
+
+
+@router.get("/articles", response_model=CrawledArticlePageResponse)
+def list_crawled_articles(
+    use_case: Annotated[ListCrawledArticles, Depends(get_list_crawled_articles_use_case)],
+    limit: Annotated[int, Query(ge=1, le=20)] = 5,
+    cursor: str | None = None,
+) -> CrawledArticlePageResponse:
+    """Expose stable keyset pages without a count query that grows with the corpus."""
+    try:
+        page = use_case.execute(limit=limit, cursor=cursor)
+    except InvalidCrawledArticleCursor as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Invalid article cursor",
+        ) from error
+    return CrawledArticlePageResponse(
+        items=[
+            CrawledArticleItemResponse(id=row.id, url=row.url, updated_at=row.updated_at)
+            for row in page.items
+        ],
+        next_cursor=page.next_cursor,
+    )
+
+
+@router.get("/articles/{crawl_id}/preview", response_model=ArticlePreviewResponse)
+async def get_article_preview(
+    crawl_id: int,
+    use_case: Annotated[GetArticlePreview, Depends(get_article_preview_use_case)],
+) -> ArticlePreviewResponse:
+    """Keep preview failures isolated so the lightweight catalog remains available."""
+    try:
+        preview = await use_case.execute(crawl_id)
+    except CrawledArticleNotFound as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except UpstreamFetchError as error:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Unable to load article preview",
+        ) from error
+    return ArticlePreviewResponse(
+        title=preview.title,
+        description=preview.description,
+        image_url=preview.image_url,
+        site_name=preview.site_name,
     )
 
 
