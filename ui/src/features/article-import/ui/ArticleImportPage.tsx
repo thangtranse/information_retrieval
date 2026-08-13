@@ -1,5 +1,5 @@
 import type { ChangeEvent, FormEvent } from "react";
-import { ArrowLeft, DatabaseZap, FileInput } from "lucide-react";
+import { ArrowLeft, DatabaseZap } from "lucide-react";
 import { Link } from "react-router";
 
 import type { ArticleImportMode } from "@/features/article-import/model/article-import";
