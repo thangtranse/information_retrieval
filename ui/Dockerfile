@@ -6,7 +6,9 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 ARG VITE_API_BASE_URL=http://localhost:8000
+ARG VITE_ARTICLE_SOURCE_DOMAIN=vnexpress.net
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_ARTICLE_SOURCE_DOMAIN=$VITE_ARTICLE_SOURCE_DOMAIN
 RUN npm run build
 
 # Serve the built assets with Vite preview on 5173 so the browser origin matches the backend
