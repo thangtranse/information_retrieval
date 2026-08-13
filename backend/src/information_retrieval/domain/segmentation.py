@@ -8,6 +8,22 @@ class ArticleSegmentationError(Exception):
 
 
 @dataclass(frozen=True, slots=True)
+class NormalizedTextPart:
+    paragraph_num: int
+    paragraph_part_num: int
+    normalized_text: str
+
+
+@dataclass(frozen=True, slots=True)
+class TextSegment:
+    paragraph_num: int
+    paragraph_part_num: int
+    segment_num: int
+    segmented_text: str
+    segment_word_count: int
+
+
+@dataclass(frozen=True, slots=True)
 class StoredProcessedParagraph:
     id: int
     crawl_url_id: int

@@ -1,13 +1,16 @@
 from itertools import groupby
 
+from information_retrieval.application.segment_normalized_text_parts import (
+    SegmentNormalizedTextParts,
+)
 from information_retrieval.application.segmentation_ports import (
     NormalizedParagraphRepository,
     SegmentedSentenceRepository,
     WordSegmenter,
 )
-from information_retrieval.domain.preprocessing import MAX_PARAGRAPH_WORDS
 from information_retrieval.domain.segmentation import (
     ArticleSegmentationError,
+    NormalizedTextPart,
     SegmentationFailure,
     SegmentationSummary,
     SegmentedSentence,
@@ -23,7 +26,7 @@ class SegmentProcessedParagraphs:
         sentence_repository: SegmentedSentenceRepository,
     ) -> None:
         self._paragraph_repository = paragraph_repository
-        self._segmenter = segmenter
+        self._segment_parts = SegmentNormalizedTextParts(segmenter)
         self._sentence_repository = sentence_repository
 
     def execute(self, crawl_id: int | None = None) -> SegmentationSummary:
@@ -63,42 +66,36 @@ class SegmentProcessedParagraphs:
     def _segment_document(
         self, paragraphs: list[StoredProcessedParagraph]
     ) -> list[SegmentedSentence]:
-        """Reject an oversized row before model calls so the old document remains untouched."""
-        for paragraph in paragraphs:
-            normalized_word_count = len(paragraph.normalized_text.split())
-            if normalized_word_count > MAX_PARAGRAPH_WORDS:
-                raise ArticleSegmentationError(
-                    f"paragraph num {paragraph.paragraph_num} "
-                    f"part {paragraph.paragraph_part_num} has {normalized_word_count} "
-                    f"normalized words; maximum is {MAX_PARAGRAPH_WORDS}"
+        """Restore metadata after the shared service has built a complete valid document."""
+        text_segments = self._segment_parts.execute(
+            [
+                NormalizedTextPart(
+                    paragraph_num=paragraph.paragraph_num,
+                    paragraph_part_num=paragraph.paragraph_part_num,
+                    normalized_text=paragraph.normalized_text,
                 )
-
+                for paragraph in paragraphs
+            ]
+        )
+        paragraph_by_key = {
+            (paragraph.paragraph_num, paragraph.paragraph_part_num): paragraph
+            for paragraph in paragraphs
+        }
         sentences: list[SegmentedSentence] = []
-        for paragraph in paragraphs:
-            segmented_texts = self._segmenter.segment(paragraph.normalized_text)
-            if not segmented_texts:
-                raise ArticleSegmentationError(
-                    f"no segmented sentences at paragraph num {paragraph.paragraph_num} "
-                    f"part {paragraph.paragraph_part_num}"
+        for segment in text_segments:
+            paragraph = paragraph_by_key[(segment.paragraph_num, segment.paragraph_part_num)]
+            sentences.append(
+                SegmentedSentence(
+                    processed_paragraph_id=paragraph.id,
+                    crawl_url_id=paragraph.crawl_url_id,
+                    docid=paragraph.docid,
+                    paragraph_num=segment.paragraph_num,
+                    paragraph_part_num=segment.paragraph_part_num,
+                    block_type=paragraph.block_type,
+                    source_word_count=paragraph.source_word_count,
+                    segment_num=segment.segment_num,
+                    segmented_text=segment.segmented_text,
+                    segment_word_count=segment.segment_word_count,
                 )
-            for segment_num, segmented_text in enumerate(segmented_texts, start=1):
-                if not segmented_text.strip():
-                    raise ArticleSegmentationError(
-                        f"empty segmented sentence at paragraph num {paragraph.paragraph_num} "
-                        f"part {paragraph.paragraph_part_num}"
-                    )
-                sentences.append(
-                    SegmentedSentence(
-                        processed_paragraph_id=paragraph.id,
-                        crawl_url_id=paragraph.crawl_url_id,
-                        docid=paragraph.docid,
-                        paragraph_num=paragraph.paragraph_num,
-                        paragraph_part_num=paragraph.paragraph_part_num,
-                        block_type=paragraph.block_type,
-                        source_word_count=paragraph.source_word_count,
-                        segment_num=segment_num,
-                        segmented_text=segmented_text,
-                        segment_word_count=len(segmented_text.split()),
-                    )
-                )
+            )
         return sentences

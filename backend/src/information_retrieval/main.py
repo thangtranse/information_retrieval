@@ -9,6 +9,7 @@ from information_retrieval.infrastructure.crawl_repository import PostgresCrawlU
 from information_retrieval.presentation.http.dependencies import get_crawl_engine
 from information_retrieval.presentation.http.routes.crawler import router as crawler_router
 from information_retrieval.presentation.http.routes.health import router as health_router
+from information_retrieval.presentation.http.routes.search import router as search_router
 
 
 @asynccontextmanager
@@ -33,4 +34,5 @@ def create_app() -> FastAPI:
     )
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(crawler_router, prefix="/api/v1")
+    app.include_router(search_router, prefix="/api/v1")
     return app

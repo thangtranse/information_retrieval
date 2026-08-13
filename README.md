@@ -119,6 +119,46 @@ thông thường không tự tải model.
 Schema dùng `paragraph_part_num`; database cũ phải được recreate trước khi chạy pipeline vì
 `create_all()` không tự thêm cột hoặc thay unique constraint.
 
+## Semantic article search
+
+Trước khi tìm kiếm, corpus phải có sentence embedding PhoBERT tương ứng. Tạo embedding cho toàn
+bộ corpus hoặc một bài cụ thể bằng:
+
+```bash
+make embed
+make embed CRAWL_ID=<id>
+```
+
+Endpoint `POST /api/v1/search/articles` nhận JSON gồm `text` và `top_k`. `text` là chuỗi bắt buộc,
+không được rỗng sau khi trim và dài tối đa 10.000 ký tự. `top_k` là số nguyên strict từ 1 đến 50,
+mặc định là 10.
+
+```bash
+curl -sS -X POST http://localhost:8000/api/v1/search/articles \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"Giá vé máy bay đi Singapore giảm mạnh.","top_k":10}'
+```
+
+Response thành công có `status`, `top_k`, `returned_count`, thông tin query sau segmentation và
+danh sách `articles`. Mỗi article gồm `rank`, `crawl_url_id`, `title`, `url`, `score`, câu query
+khớp nhất và câu trong article khớp nhất kèm metadata paragraph/segment. Mỗi `crawl_url_id` chỉ
+xuất hiện một lần. `score` là cosine similarity lớn nhất trong mọi cặp câu query-câu article,
+không phải trung bình; kết quả được sắp ổn định theo score giảm dần rồi `crawl_url_id` tăng dần.
+
+Request sai giới hạn hoặc không còn nội dung sau preprocessing trả HTTP 422. Lỗi model, cache
+hoặc dịch vụ tìm kiếm trả HTTP 503 với thông báo chung. Corpus không có article đủ điều kiện trả
+HTTP 200 với `articles` rỗng và `returned_count` bằng 0.
+
+VnCoreNLP và PhoBERT được load lazy ở request tìm kiếm đầu tiên; mỗi process Uvicorn giữ một bản
+model trong bộ nhớ. Query đã normalize, câu segmented, token, mask và vector chỉ tồn tại tạm thời;
+API search không ghi query hay kết quả vào database và các câu query sau xử lý được trả trực tiếp
+trong response.
+
+Với mỗi request đã qua schema validation và đi vào handler, terminal ghi một dòng `SEARCH` tóm
+tắt thành công/thất bại và một dòng `SEARCH_RESULT` cho mỗi article trả về. Request bị từ chối ở
+tầng schema (HTTP 422) chỉ có access log thông thường, không có dòng `SEARCH`. Log không chứa query
+đầy đủ, token, mask, vector, database URL, model path hoặc credential trong URL.
+
 ## Architecture
 
 - `backend/domain`: model và invariant thuần Python.

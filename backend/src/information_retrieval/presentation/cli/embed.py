@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
 
 from information_retrieval.application.embed_segmented_sentences import (
     EmbedSegmentedSentences,
@@ -10,12 +9,11 @@ from information_retrieval.application.embed_segmented_sentences import (
 from information_retrieval.domain.embedding import SentenceEmbeddingError
 from information_retrieval.infrastructure.config import get_settings
 from information_retrieval.infrastructure.database import create_database_engine
+from information_retrieval.infrastructure.model_paths import resolve_model_dir
 from information_retrieval.infrastructure.phobert_sentence_encoder import PhoBertSentenceEncoder
 from information_retrieval.infrastructure.sentence_embedding_repository import (
     PostgresSentenceEmbeddingRepository,
 )
-
-_BACKEND_ROOT = Path(__file__).resolve().parents[4]
 
 
 def _positive_crawl_id(value: str) -> int:
@@ -37,13 +35,6 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _resolve_model_dir(configured_path: Path) -> Path:
-    """Anchor relative model caches to backend regardless of the caller's directory."""
-    if configured_path.is_absolute():
-        return configured_path.resolve()
-    return (_BACKEND_ROOT / configured_path).resolve()
-
-
 def run(argv: list[str] | None = None) -> int:
     """Run failure-isolated sentence embedding for one article or the complete corpus."""
     args = _parse_args(argv)
@@ -55,7 +46,7 @@ def run(argv: list[str] | None = None) -> int:
         repository.initialize_schema()
         encoder = PhoBertSentenceEncoder(
             model_name=settings.phobert_model_name,
-            cache_dir=_resolve_model_dir(settings.phobert_model_dir),
+            cache_dir=resolve_model_dir(settings.phobert_model_dir),
             max_length=settings.embedding_max_length,
         )
     except (OSError, RuntimeError, SentenceEmbeddingError) as error:

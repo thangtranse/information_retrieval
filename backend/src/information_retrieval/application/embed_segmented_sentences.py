@@ -1,4 +1,3 @@
-import math
 from itertools import groupby
 
 from information_retrieval.application.embedding_ports import (
@@ -6,12 +5,13 @@ from information_retrieval.application.embedding_ports import (
     SentenceEmbeddingRepository,
     SentenceEncoder,
 )
+from information_retrieval.application.encode_sentence_texts import EncodeSentenceTexts
 from information_retrieval.domain.embedding import (
-    EMBEDDING_DIMENSIONS,
     EmbeddingFailure,
     EmbeddingSummary,
     SentenceEmbedding,
     SentenceEmbeddingError,
+    SentenceText,
     StoredSegmentedSentence,
 )
 
@@ -26,10 +26,9 @@ class EmbedSegmentedSentences:
         batch_size: int,
     ) -> None:
         self._sentence_source = sentence_source
-        self._encoder = encoder
+        self._sentence_encoder = EncodeSentenceTexts(encoder, batch_size)
         self._embedding_repository = embedding_repository
         self._model_name = model_name
-        self._batch_size = batch_size
 
     def execute(self, crawl_id: int | None = None) -> EmbeddingSummary:
         """Isolate failures by document so one malformed article does not block the corpus."""
@@ -67,34 +66,9 @@ class EmbedSegmentedSentences:
 
     def _encode_document(self, sentences: list[StoredSegmentedSentence]) -> list[SentenceEmbedding]:
         """Validate complete model output before replacing any durable vector for a document."""
-        if self._batch_size <= 0:
-            raise SentenceEmbeddingError("embedding batch size must be greater than zero")
-
-        records: list[SentenceEmbedding] = []
-        for start in range(0, len(sentences), self._batch_size):
-            batch = sentences[start : start + self._batch_size]
-            vectors = self._encoder.encode([sentence.segmented_text for sentence in batch])
-            if len(vectors) != len(batch):
-                raise SentenceEmbeddingError(
-                    f"model returned {len(vectors)} vectors for {len(batch)} sentences"
-                )
-
-            for sentence, vector in zip(batch, vectors, strict=True):
-                if len(vector) != EMBEDDING_DIMENSIONS:
-                    raise SentenceEmbeddingError(
-                        f"sentence {sentence.id} has {len(vector)} dimensions; "
-                        f"expected {EMBEDDING_DIMENSIONS}"
-                    )
-                if not all(math.isfinite(value) for value in vector):
-                    raise SentenceEmbeddingError(
-                        f"sentence {sentence.id} embedding contains a non-finite value"
-                    )
-                if not any(value != 0.0 for value in vector):
-                    raise SentenceEmbeddingError(
-                        f"sentence {sentence.id} embedding is a zero vector"
-                    )
-                records.append(SentenceEmbedding(sentence.id, vector))
-
-        if not records:
+        if not sentences:
             raise SentenceEmbeddingError("refusing to persist an empty document embedding")
-        return records
+        encoded = self._sentence_encoder.execute(
+            [SentenceText(sentence.id, sentence.segmented_text) for sentence in sentences]
+        )
+        return [SentenceEmbedding(item.sentence_id, item.embedding) for item in encoded]

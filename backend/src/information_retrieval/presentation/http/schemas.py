@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 
 class HealthResponse(BaseModel):
@@ -29,3 +30,55 @@ class CrawlArticleResponse(BaseModel):
     file_path: str | None
     error_reason: str | None
     updated_at: datetime
+
+
+SearchText = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=10_000),
+]
+
+
+class SearchArticlesRequest(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    text: SearchText
+    top_k: Annotated[int, Field(strict=True, ge=1, le=50)] = 10
+
+
+class SearchQueryResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    segment_count: int
+    segmented_sentences: list[str]
+
+
+class MatchedArticleSentenceResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: int
+    text: str
+    paragraph_num: int
+    paragraph_part_num: int
+    segment_num: int
+
+
+class RelatedArticleResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    rank: int
+    crawl_url_id: int
+    title: str | None
+    url: str
+    score: float
+    matched_query_sentence: str
+    matched_article_sentence: MatchedArticleSentenceResponse
+
+
+class SearchArticlesResponse(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    status: Literal["success"] = "success"
+    top_k: int
+    returned_count: int
+    query: SearchQueryResponse
+    articles: list[RelatedArticleResponse]
