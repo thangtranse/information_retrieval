@@ -20,6 +20,10 @@ class SentenceEmbeddingRepository(Protocol):
         """Create vector storage idempotently for a freshly initialized database."""
         ...
 
+    def ensure_cosine_index(self) -> None:
+        """Keep cosine index lifecycle at the persistence boundary, not in model code."""
+        ...
+
     def upsert_for_crawl_url(
         self,
         crawl_url_id: int,

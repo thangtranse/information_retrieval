@@ -1,5 +1,5 @@
 import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
-import { Activity, FilePlus2, Search } from "lucide-react";
+import { Activity, FilePlus2 } from "lucide-react";
 import { Link } from "react-router";
 
 import { useSearchForm } from "@/features/search/model/use-search-form";

@@ -74,6 +74,13 @@ def run(argv: list[str] | None = None) -> int:
         print(f"EMBED id={args.crawl_id} status=not-found", file=sys.stderr)
         return 1
 
+    index_failed = False
+    try:
+        repository.ensure_cosine_index()
+    except SentenceEmbeddingError as error:
+        print(f'EMBED status=failed reason="{error}"', file=sys.stderr)
+        index_failed = True
+
     for failure in summary.failures:
         print(
             f'EMBED id={failure.crawl_url_id} status=failed reason="{failure.reason}"',
@@ -85,7 +92,7 @@ def run(argv: list[str] | None = None) -> int:
         f"selected_sentences={summary.selected_sentences} "
         f"stored_embeddings={summary.stored_embeddings} failed={len(summary.failures)}"
     )
-    return 1 if summary.failures else 0
+    return 1 if summary.failures or index_failed else 0
 
 
 if __name__ == "__main__":
