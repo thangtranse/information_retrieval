@@ -1,5 +1,5 @@
 import type { ChangeEventHandler, FormEventHandler, KeyboardEventHandler, RefObject } from "react";
-import { Search } from "lucide-react";
+import { LoaderCircle, Search } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
@@ -8,6 +8,7 @@ import { Textarea } from "@/shared/ui/textarea";
 interface SearchFormProps {
   query: string;
   canSubmit: boolean;
+  isProcessing: boolean;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   onQueryChange: ChangeEventHandler<HTMLTextAreaElement>;
   onKeyDown: KeyboardEventHandler<HTMLTextAreaElement>;
@@ -17,6 +18,7 @@ interface SearchFormProps {
 export function SearchForm({
   query,
   canSubmit,
+  isProcessing,
   textareaRef,
   onQueryChange,
   onKeyDown,
@@ -25,7 +27,7 @@ export function SearchForm({
   return (
     <Card className="border-0 bg-white/90 shadow-xl shadow-black/5 ring-1 ring-black/5 backdrop-blur">
       <CardContent className="p-4 sm:p-6">
-        <form className="space-y-5" onSubmit={onSubmit}>
+        <form aria-busy={isProcessing} className="space-y-5" onSubmit={onSubmit}>
           <div className="space-y-2.5">
             <label className="text-sm font-medium" htmlFor="search-query">
               Nội dung tìm kiếm
@@ -33,6 +35,7 @@ export function SearchForm({
             <Textarea
               aria-describedby="search-query-help"
               className="min-h-0 resize-none [field-sizing:fixed] px-4 py-3 text-base leading-6 shadow-none md:text-base"
+              disabled={isProcessing}
               id="search-query"
               onChange={onQueryChange}
               onKeyDown={onKeyDown}
@@ -49,12 +52,16 @@ export function SearchForm({
             </p>
             <Button
               className="h-10 w-full px-5 sm:w-auto"
-              disabled={!canSubmit}
+              disabled={!canSubmit || isProcessing}
               size="lg"
               type="submit"
             >
-              <Search aria-hidden="true" />
-              Tìm kiếm
+              {isProcessing ? (
+                <LoaderCircle aria-hidden="true" className="animate-spin" />
+              ) : (
+                <Search aria-hidden="true" />
+              )}
+              {isProcessing ? "Đang xử lý…" : "Tìm kiếm"}
             </Button>
           </div>
         </form>
