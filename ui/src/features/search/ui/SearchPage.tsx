@@ -2,12 +2,18 @@ import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
 import { Activity, FilePlus2, Newspaper } from "lucide-react";
 import { Link } from "react-router";
 
+import { SEARCH_TOP_K } from "@/features/search/model/search";
+import { useArticleSearch } from "@/features/search/model/use-article-search";
 import { useSearchForm } from "@/features/search/model/use-search-form";
+import { SearchErrorToast } from "@/features/search/ui/SearchErrorToast";
 import { SearchForm } from "@/features/search/ui/SearchForm";
+import { SearchProcessingState } from "@/features/search/ui/SearchProcessingState";
+import { SearchResults } from "@/features/search/ui/SearchResults";
 import { useAutoResizeTextarea } from "@/shared/hooks/use-auto-resize-textarea";
 
 export function SearchPage() {
   const searchForm = useSearchForm();
+  const articleSearch = useArticleSearch();
   const textareaRef = useAutoResizeTextarea(searchForm.query, { minRows: 3, maxRows: 10 });
 
   const handleQueryChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -17,12 +23,18 @@ export function SearchPage() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     // WHY: The page owns submission policy so the form remains a reusable presentational component.
     event.preventDefault();
-    searchForm.submit();
+    if (articleSearch.isPending) return;
+
+    const text = searchForm.submit();
+    if (text === null) return;
+
+    articleSearch.mutate({ text, top_k: SEARCH_TOP_K });
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     // WHY: A multiline query needs Enter for new lines, so only the explicit modifier shortcut submits.
-    if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
+    if (articleSearch.isPending || !(event.ctrlKey || event.metaKey) || event.key !== "Enter")
+      return;
 
     event.preventDefault();
 
@@ -52,12 +64,16 @@ export function SearchPage() {
 
         <SearchForm
           canSubmit={searchForm.canSubmit}
+          isProcessing={articleSearch.isPending}
           onKeyDown={handleKeyDown}
           onQueryChange={handleQueryChange}
           onSubmit={handleSubmit}
           query={searchForm.query}
           textareaRef={textareaRef}
         />
+
+        {articleSearch.isPending ? <SearchProcessingState /> : null}
+        {articleSearch.isSuccess ? <SearchResults result={articleSearch.data} /> : null}
 
         <nav aria-label="Điều hướng phụ" className="flex flex-wrap justify-center gap-5">
           <Link
@@ -83,6 +99,10 @@ export function SearchPage() {
           </Link>
         </nav>
       </div>
+
+      {articleSearch.isError ? (
+        <SearchErrorToast error={articleSearch.error} onDismiss={articleSearch.reset} />
+      ) : null}
     </main>
   );
 }
