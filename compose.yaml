@@ -46,6 +46,7 @@ services:
       context: ./ui
       args:
         VITE_API_BASE_URL: http://localhost:8000
+        VITE_ARTICLE_SOURCE_DOMAIN: ${VITE_ARTICLE_SOURCE_DOMAIN:-vnexpress.net}
     depends_on:
       - backend
     ports:
