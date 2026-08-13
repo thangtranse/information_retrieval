@@ -8,6 +8,7 @@ from information_retrieval.application.segmentation_ports import (
     SegmentedSentenceRepository,
     WordSegmenter,
 )
+from information_retrieval.domain.corpus import build_corpus_document_snapshot
 from information_retrieval.domain.segmentation import (
     ArticleSegmentationError,
     NormalizedTextPart,
@@ -46,7 +47,10 @@ class SegmentProcessedParagraphs:
         for document_id, paragraphs in grouped_rows:
             try:
                 sentences = self._segment_document(paragraphs)
-                self._sentence_repository.replace_for_crawl_url(document_id, sentences)
+                corpus_snapshot = build_corpus_document_snapshot(paragraphs, sentences)
+                self._sentence_repository.replace_for_crawl_url(
+                    document_id, sentences, corpus_snapshot
+                )
             except ArticleSegmentationError as error:
                 failures.append(SegmentationFailure(document_id, str(error)))
                 continue

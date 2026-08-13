@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import (
+    ARRAY,
     BigInteger,
     CheckConstraint,
     DateTime,
@@ -178,6 +179,68 @@ class SegmentedSentenceRow(Base):
     segment_num: Mapped[int] = mapped_column(Integer, nullable=False)
     segmented_text: Mapped[str] = mapped_column(Text, nullable=False)
     segment_word_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class NormalizedCorpusDocumentRow(Base):
+    __tablename__ = "normalized_corpus_documents"
+    __table_args__ = (
+        CheckConstraint("word_count >= 0", name="normalized_corpus_documents_word_count_check"),
+        CheckConstraint(
+            "sentence_count >= 0", name="normalized_corpus_documents_sentence_count_check"
+        ),
+    )
+
+    # WHY: One row per crawl id makes replacement idempotent and couples corpus lifetime to its
+    # source article without introducing a second document identity.
+    crawl_url_id: Mapped[int] = mapped_column(
+        ForeignKey("crawl_urls.id", ondelete="CASCADE"), primary_key=True
+    )
+    word_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    sentence_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class SegmentedCorpusDocumentRow(Base):
+    __tablename__ = "segmented_corpus_documents"
+    __table_args__ = (
+        CheckConstraint("word_count >= 0", name="segmented_corpus_documents_word_count_check"),
+        CheckConstraint(
+            "sentence_count >= 0", name="segmented_corpus_documents_sentence_count_check"
+        ),
+        CheckConstraint(
+            "underscore_word_count >= 0",
+            name="segmented_corpus_documents_underscore_word_count_check",
+        ),
+        CheckConstraint(
+            "cardinality(underscore_words) = underscore_word_count",
+            name="segmented_corpus_documents_underscore_words_count_check",
+        ),
+    )
+
+    crawl_url_id: Mapped[int] = mapped_column(
+        ForeignKey("crawl_urls.id", ondelete="CASCADE"), primary_key=True
+    )
+    word_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    sentence_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    underscore_words: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False)
+    underscore_word_count: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

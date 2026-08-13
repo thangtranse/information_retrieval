@@ -6,6 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from information_retrieval.application.crawl_article import CrawlArticle
 from information_retrieval.application.get_article_preview import GetArticlePreview
+from information_retrieval.application.get_corpus_statistics import GetCorpusStatistics
 from information_retrieval.application.get_health import GetHealth
 from information_retrieval.application.list_crawled_articles import ListCrawledArticles
 from information_retrieval.application.search_articles import SearchArticles
@@ -15,6 +16,9 @@ from information_retrieval.domain.segmentation import ArticleSegmentationError
 from information_retrieval.infrastructure.article_preview_source import HttpxArticlePreviewSource
 from information_retrieval.infrastructure.article_writer import Utf8ArticleFileStorage
 from information_retrieval.infrastructure.config import get_settings
+from information_retrieval.infrastructure.corpus_statistics_repository import (
+    PostgresCorpusStatisticsRepository,
+)
 from information_retrieval.infrastructure.crawl_repository import PostgresCrawlUrlRepository
 from information_retrieval.infrastructure.database import create_database_engine
 from information_retrieval.infrastructure.http_source import HttpxArticleSource
@@ -118,3 +122,8 @@ def get_article_preview_use_case() -> GetArticlePreview:
         source=HttpxArticlePreviewSource(settings.crawler_base_domain),
         parser=OpenGraphArticlePreviewParser(),
     )
+
+
+def get_corpus_statistics_use_case() -> GetCorpusStatistics:
+    """Wire corpus reads to the shared pool without exposing SQLAlchemy to the route."""
+    return GetCorpusStatistics(PostgresCorpusStatisticsRepository(get_crawl_engine()))

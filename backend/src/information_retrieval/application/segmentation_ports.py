@@ -1,5 +1,6 @@
 from typing import Protocol
 
+from information_retrieval.domain.corpus import CorpusDocumentSnapshot
 from information_retrieval.domain.segmentation import (
     SegmentedSentence,
     StoredProcessedParagraph,
@@ -23,6 +24,11 @@ class SegmentedSentenceRepository(Protocol):
         """Create the segmentation table idempotently for a freshly recreated database."""
         ...
 
-    def replace_for_crawl_url(self, crawl_url_id: int, sentences: list[SegmentedSentence]) -> None:
-        """Replace one document atomically so failed reruns preserve the previous snapshot."""
+    def replace_for_crawl_url(
+        self,
+        crawl_url_id: int,
+        sentences: list[SegmentedSentence],
+        corpus_snapshot: CorpusDocumentSnapshot,
+    ) -> None:
+        """Replace sentences and corpus summaries as one durable document snapshot."""
         ...

@@ -10,7 +10,9 @@ from information_retrieval.domain.preprocessing import (
 )
 from information_retrieval.domain.segmentation import StoredProcessedParagraph
 from information_retrieval.infrastructure.database import (
+    NormalizedCorpusDocumentRow,
     ProcessedParagraphRow,
+    SegmentedCorpusDocumentRow,
     initialize_schema,
 )
 
@@ -35,6 +37,18 @@ class PostgresProcessedParagraphRepository:
             )
 
         with Session(self._engine) as session, session.begin():
+            # WHY: A newly normalized document has not been segmented yet, so retaining its old
+            # corpus metrics would expose a version that no longer matches the source snapshot.
+            session.execute(
+                delete(SegmentedCorpusDocumentRow).where(
+                    SegmentedCorpusDocumentRow.crawl_url_id == crawl_url_id
+                )
+            )
+            session.execute(
+                delete(NormalizedCorpusDocumentRow).where(
+                    NormalizedCorpusDocumentRow.crawl_url_id == crawl_url_id
+                )
+            )
             session.execute(
                 delete(ProcessedParagraphRow).where(
                     ProcessedParagraphRow.crawl_url_id == crawl_url_id
