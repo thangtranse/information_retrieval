@@ -14,6 +14,7 @@ from sqlalchemy import (
     UniqueConstraint,
     create_engine,
     func,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -52,6 +53,16 @@ class CrawlUrlRow(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+
+# WHY: The partial keyset index keeps the catalog query proportional to page size while
+# excluding rows the public completed-article feed can never return.
+CRAWLED_ARTICLE_KEYSET_INDEX = Index(
+    "crawl_urls_completed_updated_id_idx",
+    CrawlUrlRow.updated_at.desc(),
+    CrawlUrlRow.id.desc(),
+    postgresql_where=text("status = 'completed' AND file_path IS NOT NULL"),
+)
 
 
 class ProcessedParagraphRow(Base):
@@ -215,9 +226,48 @@ def create_database_engine(database_url: str) -> Engine:
 def initialize_schema(engine: Engine) -> None:
     """Create missing tables idempotently without adding migration machinery to this scope."""
     Base.metadata.create_all(engine)
+    _ensure_crawled_article_keyset_index(engine)
 
 
 def ensure_sentence_embedding_cosine_index(engine: Engine) -> None:
     """Create the ANN index explicitly because create_all cannot upgrade an existing table."""
     with engine.begin() as connection:
         connection.exec_driver_sql(_SENTENCE_EMBEDDING_COSINE_INDEX_SQL)
+
+
+def _ensure_crawled_article_keyset_index(engine: Engine) -> None:
+    """Upgrade existing databases without racing replicas or blocking crawler writes."""
+    # WHY: create_all skips indexes on an existing table; one advisory lock serializes startup
+    # replicas while CONCURRENTLY keeps the established crawler write path available.
+    connection = engine.connect().execution_options(isolation_level="AUTOCOMMIT")
+    lock_acquired = False
+    try:
+        connection.exec_driver_sql(
+            "SELECT pg_advisory_lock(hashtext('crawl_urls_completed_updated_id_idx'))"
+        )
+        lock_acquired = True
+        invalid_index = connection.exec_driver_sql(
+            "SELECT NOT index_state.indisvalid "
+            "FROM pg_class AS index_class "
+            "JOIN pg_index AS index_state ON index_state.indexrelid = index_class.oid "
+            "JOIN pg_namespace AS namespace ON namespace.oid = index_class.relnamespace "
+            "WHERE index_class.relname = 'crawl_urls_completed_updated_id_idx' "
+            "AND namespace.nspname = current_schema()"
+        ).scalar_one_or_none()
+        if invalid_index:
+            # WHY: Interrupted concurrent builds leave a named but unusable index that makes
+            # IF NOT EXISTS silently skip every future recovery attempt.
+            connection.exec_driver_sql(
+                "DROP INDEX CONCURRENTLY IF EXISTS crawl_urls_completed_updated_id_idx"
+            )
+        connection.exec_driver_sql(
+            "CREATE INDEX CONCURRENTLY IF NOT EXISTS "
+            "crawl_urls_completed_updated_id_idx ON crawl_urls (updated_at DESC, id DESC) "
+            "WHERE status = 'completed' AND file_path IS NOT NULL"
+        )
+    finally:
+        if lock_acquired:
+            connection.exec_driver_sql(
+                "SELECT pg_advisory_unlock(hashtext('crawl_urls_completed_updated_id_idx'))"
+            )
+        connection.close()

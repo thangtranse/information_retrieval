@@ -1,5 +1,5 @@
 import type { ChangeEvent, FormEvent } from "react";
-import { ArrowLeft, DatabaseZap } from "lucide-react";
+import { ArrowLeft, DatabaseZap, Newspaper } from "lucide-react";
 import { Link } from "react-router";
 
 import type { ArticleImportMode } from "@/features/article-import/model/article-import";
@@ -50,12 +50,20 @@ export function ArticleImportPage() {
         className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-80 bg-[radial-gradient(circle_at_top,rgba(163,163,163,0.18),transparent_68%)]"
       />
       <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col gap-8">
-        <Button asChild className="w-fit" variant="ghost">
-          <Link to="/">
-            <ArrowLeft aria-hidden="true" />
-            Quay lại tìm kiếm
-          </Link>
-        </Button>
+        <nav aria-label="Điều hướng bài viết" className="flex flex-wrap items-center gap-2">
+          <Button asChild className="w-fit" variant="ghost">
+            <Link to="/">
+              <ArrowLeft aria-hidden="true" />
+              Quay lại tìm kiếm
+            </Link>
+          </Button>
+          <Button asChild className="w-fit" variant="ghost">
+            <Link to="/articles/crawled">
+              <Newspaper aria-hidden="true" />
+              Bài viết đã crawl
+            </Link>
+          </Button>
+        </nav>
 
         <header className="mx-auto max-w-2xl space-y-5 text-center">
           <div className="space-y-3">
