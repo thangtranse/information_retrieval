@@ -1,5 +1,5 @@
 import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
-import { Activity, FilePlus2, Newspaper } from "lucide-react";
+import { Activity, BarChart3, FilePlus2, Newspaper } from "lucide-react";
 import { Link } from "react-router";
 
 import { SEARCH_TOP_K } from "@/features/search/model/search";
@@ -96,6 +96,13 @@ export function SearchPage() {
           >
             <Activity aria-hidden="true" className="size-4" />
             Kiểm tra hệ thống
+          </Link>
+          <Link
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            to="/corpus/statistics"
+          >
+            <BarChart3 aria-hidden="true" className="size-4" />
+            Thống kê corpus
           </Link>
         </nav>
       </div>
