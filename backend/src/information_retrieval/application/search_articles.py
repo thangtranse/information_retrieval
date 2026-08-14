@@ -142,6 +142,7 @@ class SearchArticles:
                 crawl_url_id=pair.candidate.crawl_url_id,
                 title=pair.candidate.title,
                 url=pair.candidate.url,
+                source_kind=pair.candidate.source_kind,
                 score=pair.score,
                 matched_query_sentence=query_sentences[pair.query_index],
                 matched_article_sentence=MatchedArticleSentence(

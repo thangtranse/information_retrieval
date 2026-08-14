@@ -1,15 +1,24 @@
+from __future__ import annotations
+
 from functools import lru_cache
 from threading import Lock
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from information_retrieval.application.crawl_article import CrawlArticle
+from information_retrieval.application.embed_segmented_sentences import EmbedSegmentedSentences
 from information_retrieval.application.get_article_preview import GetArticlePreview
 from information_retrieval.application.get_corpus_statistics import GetCorpusStatistics
 from information_retrieval.application.get_health import GetHealth
+from information_retrieval.application.import_manual_article import ImportManualArticle
 from information_retrieval.application.list_crawled_articles import ListCrawledArticles
+from information_retrieval.application.preprocess_crawled_articles import PreprocessCrawledArticles
 from information_retrieval.application.search_articles import SearchArticles
+from information_retrieval.application.segment_processed_paragraphs import (
+    SegmentProcessedParagraphs,
+)
 from information_retrieval.domain.embedding import SentenceEmbeddingError
 from information_retrieval.domain.search import SearchUnavailableError
 from information_retrieval.domain.segmentation import ArticleSegmentationError
@@ -27,6 +36,52 @@ from information_retrieval.infrastructure.system_health import SystemHealthProbe
 from information_retrieval.infrastructure.vnexpress_parser import VnExpressParser
 
 _search_build_lock = Lock()
+_pipeline_build_lock = Lock()
+_model_build_lock = Lock()
+
+if TYPE_CHECKING:
+    from information_retrieval.infrastructure.phobert_sentence_encoder import (
+        PhoBertSentenceEncoder,
+    )
+    from information_retrieval.infrastructure.vncorenlp_segmenter import VnCoreNlpWordSegmenter
+
+
+@lru_cache(maxsize=1)
+def _build_shared_segmenter() -> VnCoreNlpWordSegmenter:
+    """Load one Java segmenter for search and ingestion to avoid duplicate model processes."""
+    from information_retrieval.infrastructure.model_paths import resolve_model_dir
+    from information_retrieval.infrastructure.vncorenlp_segmenter import VnCoreNlpWordSegmenter
+
+    settings = get_settings()
+    return VnCoreNlpWordSegmenter(resolve_model_dir(settings.segmenter_model_dir))
+
+
+def _get_shared_segmenter() -> VnCoreNlpWordSegmenter:
+    """Serialize the cache miss because lru_cache may invoke concurrent misses twice."""
+    with _model_build_lock:
+        return _build_shared_segmenter()
+
+
+@lru_cache(maxsize=1)
+def _build_shared_encoder() -> PhoBertSentenceEncoder:
+    """Load one PhoBERT instance so ingestion cannot exhaust memory before search starts."""
+    from information_retrieval.infrastructure.model_paths import resolve_model_dir
+    from information_retrieval.infrastructure.phobert_sentence_encoder import (
+        PhoBertSentenceEncoder,
+    )
+
+    settings = get_settings()
+    return PhoBertSentenceEncoder(
+        model_name=settings.phobert_model_name,
+        cache_dir=resolve_model_dir(settings.phobert_model_dir),
+        max_length=settings.embedding_max_length,
+    )
+
+
+def _get_shared_encoder() -> PhoBertSentenceEncoder:
+    """Serialize the heavy encoder cache miss across search and pipeline dependencies."""
+    with _model_build_lock:
+        return _build_shared_encoder()
 
 
 def get_health_use_case() -> GetHealth:
@@ -54,6 +109,78 @@ def get_crawl_article_use_case() -> CrawlArticle:
     )
 
 
+def get_import_manual_article_use_case() -> ImportManualArticle:
+    """Give manual input the same repository and atomic file storage as fetched articles."""
+    return ImportManualArticle(
+        repository=PostgresCrawlUrlRepository(get_crawl_engine()),
+        storage=Utf8ArticleFileStorage(),
+    )
+
+
+def get_preprocess_article_use_case() -> PreprocessCrawledArticles:
+    """Compose focused HTTP preprocessing without changing the corpus-wide CLI boundary."""
+    from information_retrieval.infrastructure.article_paragraph_reader import (
+        Utf8ArticleParagraphReader,
+    )
+    from information_retrieval.infrastructure.processed_paragraph_repository import (
+        PostgresProcessedParagraphRepository,
+    )
+
+    return PreprocessCrawledArticles(
+        crawl_repository=PostgresCrawlUrlRepository(get_crawl_engine()),
+        reader=Utf8ArticleParagraphReader(),
+        processed_repository=PostgresProcessedParagraphRepository(get_crawl_engine()),
+    )
+
+
+@lru_cache(maxsize=1)
+def _build_segment_article_use_case() -> SegmentProcessedParagraphs:
+    """Cache the Java-backed segmenter so stage requests do not reload its model files."""
+    from information_retrieval.infrastructure.processed_paragraph_repository import (
+        PostgresProcessedParagraphRepository,
+    )
+    from information_retrieval.infrastructure.segmented_sentence_repository import (
+        PostgresSegmentedSentenceRepository,
+    )
+
+    return SegmentProcessedParagraphs(
+        paragraph_repository=PostgresProcessedParagraphRepository(get_crawl_engine()),
+        segmenter=_get_shared_segmenter(),
+        sentence_repository=PostgresSegmentedSentenceRepository(get_crawl_engine()),
+    )
+
+
+def get_segment_article_use_case() -> SegmentProcessedParagraphs:
+    """Serialize the first segmenter build so concurrent imports share one initialized model."""
+    with _pipeline_build_lock:
+        return _build_segment_article_use_case()
+
+
+@lru_cache(maxsize=1)
+def _build_embed_article_use_case() -> EmbedSegmentedSentences:
+    """Cache PhoBERT because loading it for every imported article would dominate processing."""
+    from information_retrieval.infrastructure.sentence_embedding_repository import (
+        PostgresSentenceEmbeddingRepository,
+    )
+
+    settings = get_settings()
+    repository = PostgresSentenceEmbeddingRepository(get_crawl_engine())
+    repository.ensure_cosine_index()
+    return EmbedSegmentedSentences(
+        sentence_source=repository,
+        encoder=_get_shared_encoder(),
+        embedding_repository=repository,
+        model_name=settings.phobert_model_name,
+        batch_size=settings.embedding_batch_size,
+    )
+
+
+def get_embed_article_use_case() -> EmbedSegmentedSentences:
+    """Serialize the first encoder build while retaining the cached model for later imports."""
+    with _pipeline_build_lock:
+        return _build_embed_article_use_case()
+
+
 @lru_cache(maxsize=1)
 def _build_search_articles_use_case() -> SearchArticles:
     """Load heavy model adapters only after a search request reaches the HTTP boundary."""
@@ -65,24 +192,11 @@ def _build_search_articles_use_case() -> SearchArticles:
         from information_retrieval.infrastructure.article_search_repository import (
             PostgresArticleSearchRepository,
         )
-        from information_retrieval.infrastructure.model_paths import resolve_model_dir
-        from information_retrieval.infrastructure.phobert_sentence_encoder import (
-            PhoBertSentenceEncoder,
-        )
-        from information_retrieval.infrastructure.vncorenlp_segmenter import (
-            VnCoreNlpWordSegmenter,
-        )
 
         settings = get_settings()
-        segment_parts = SegmentNormalizedTextParts(
-            VnCoreNlpWordSegmenter(resolve_model_dir(settings.segmenter_model_dir))
-        )
+        segment_parts = SegmentNormalizedTextParts(_get_shared_segmenter())
         encode_sentences = EncodeSentenceTexts(
-            PhoBertSentenceEncoder(
-                model_name=settings.phobert_model_name,
-                cache_dir=resolve_model_dir(settings.phobert_model_dir),
-                max_length=settings.embedding_max_length,
-            ),
+            _get_shared_encoder(),
             settings.embedding_batch_size,
         )
         return SearchArticles(

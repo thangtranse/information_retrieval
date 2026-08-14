@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import cast
+from uuid import uuid4
 
 from sqlalchemy import Engine, literal, select, tuple_
 from sqlalchemy.orm import Session
 
-from information_retrieval.domain.crawl import CrawlStatus, CrawlUrl
+from information_retrieval.domain.crawl import ArticleSourceKind, CrawlStatus, CrawlUrl
 from information_retrieval.infrastructure.database import CrawlUrlRow, initialize_schema
 
 
@@ -29,6 +30,19 @@ class PostgresCrawlUrlRepository:
             session.add(row)
             # Flush so the database assigns the id before we detach the row into a domain
             # object the caller uses as the file docid.
+            session.flush()
+            return self._to_domain(row)
+
+    def insert_manual_pending(self, title: str) -> CrawlUrl:
+        """Use an internal URI so manual records keep the established non-null unique key."""
+        with Session(self._engine) as session, session.begin():
+            row = CrawlUrlRow(
+                url=f"manual://{uuid4()}",
+                status="pending",
+                source_kind="manual",
+                display_title=title,
+            )
+            session.add(row)
             session.flush()
             return self._to_domain(row)
 
@@ -130,4 +144,6 @@ class PostgresCrawlUrlRepository:
             error_reason=row.error_reason,
             created_at=row.created_at,
             updated_at=row.updated_at,
+            source_kind=cast(ArticleSourceKind, row.source_kind),
+            display_title=row.display_title,
         )

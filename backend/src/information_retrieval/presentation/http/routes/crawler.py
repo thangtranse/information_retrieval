@@ -66,7 +66,13 @@ def list_crawled_articles(
         ) from error
     return CrawledArticlePageResponse(
         items=[
-            CrawledArticleItemResponse(id=row.id, url=row.url, updated_at=row.updated_at)
+            CrawledArticleItemResponse(
+                id=row.id,
+                url=row.url,
+                source_kind=row.source_kind,
+                display_title=row.display_title,
+                updated_at=row.updated_at,
+            )
             for row in page.items
         ],
         next_cursor=page.next_cursor,

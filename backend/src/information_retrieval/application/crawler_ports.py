@@ -53,6 +53,10 @@ class CrawlUrlRepository(Protocol):
         """Insert a new canonical URL as pending and return the row with its assigned id."""
         ...
 
+    def insert_manual_pending(self, title: str) -> CrawlUrl:
+        """Reserve an id for manual source blocks before their final `<s>` metadata exists."""
+        ...
+
     def list_failed(self) -> list[CrawlUrl]:
         """Return failed rows in stable id order for an explicitly requested retry pass."""
         ...

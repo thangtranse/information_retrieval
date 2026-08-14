@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from information_retrieval.infrastructure.config import get_settings
 from information_retrieval.infrastructure.crawl_repository import PostgresCrawlUrlRepository
 from information_retrieval.presentation.http.dependencies import get_crawl_engine
+from information_retrieval.presentation.http.routes.articles import router as articles_router
 from information_retrieval.presentation.http.routes.corpus import router as corpus_router
 from information_retrieval.presentation.http.routes.crawler import router as crawler_router
 from information_retrieval.presentation.http.routes.health import router as health_router
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(health_router, prefix="/api/v1")
+    app.include_router(articles_router, prefix="/api/v1")
     app.include_router(crawler_router, prefix="/api/v1")
     app.include_router(corpus_router, prefix="/api/v1")
     app.include_router(search_router, prefix="/api/v1")

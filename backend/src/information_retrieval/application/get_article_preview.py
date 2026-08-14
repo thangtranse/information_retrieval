@@ -30,5 +30,12 @@ class GetArticlePreview:
         row = await asyncio.to_thread(self._catalog.get_completed_by_id, crawl_id)
         if row is None:
             raise CrawledArticleNotFound(f"completed crawl URL {crawl_id} was not found")
+        if row.source_kind == "manual":
+            return ArticlePreview(
+                title=row.display_title,
+                description=None,
+                image_url=None,
+                site_name="Nhập thủ công",
+            )
         final_url, html = await self._source.fetch(row.url)
         return await asyncio.to_thread(self._parser.parse, final_url, html)

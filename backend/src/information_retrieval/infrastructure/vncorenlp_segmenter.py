@@ -1,4 +1,6 @@
+import os
 from pathlib import Path
+from threading import Lock
 from typing import cast
 
 import py_vncorenlp  # type: ignore[import-untyped]
@@ -14,12 +16,18 @@ class VnCoreNlpWordSegmenter:
             raise ArticleSegmentationError(
                 f"VnCoreNLP model is missing at {model_dir}; run make download-segmenter-model"
             )
+        previous_working_dir = Path.cwd()
         try:
             self._segmenter = py_vncorenlp.VnCoreNLP(annotators=["wseg"], save_dir=str(model_dir))
         except Exception as error:
             raise ArticleSegmentationError(
                 f"cannot load VnCoreNLP model from {model_dir}: {error}"
             ) from error
+        finally:
+            # WHY: The third-party constructor calls os.chdir(model_dir); restoring the process
+            # directory prevents unrelated relative file operations from following it there.
+            os.chdir(previous_working_dir)
+        self._inference_lock = Lock()
 
     @classmethod
     def is_model_installed(cls, model_dir: Path) -> bool:
@@ -44,6 +52,9 @@ class VnCoreNlpWordSegmenter:
     def segment(self, text: str) -> list[str]:
         """Translate library/runtime failures into an expected per-document batch failure."""
         try:
-            return cast(list[str], self._segmenter.word_segment(text))
+            # WHY: Search and ingestion share one Java process whose request state is not
+            # guaranteed to be safe across concurrent FastAPI worker threads.
+            with self._inference_lock:
+                return cast(list[str], self._segmenter.word_segment(text))
         except Exception as error:
             raise ArticleSegmentationError(f"VnCoreNLP segmentation failed: {error}") from error

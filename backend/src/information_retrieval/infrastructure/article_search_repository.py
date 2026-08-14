@@ -45,6 +45,7 @@ class PostgresArticleSearchRepository:
             select(
                 SegmentedSentenceRow.crawl_url_id.label("crawl_url_id"),
                 CrawlUrlRow.url.label("url"),
+                CrawlUrlRow.source_kind.label("source_kind"),
                 first_title.label("title"),
                 SegmentedSentenceRow.id.label("sentence_id"),
                 SegmentedSentenceRow.segmented_text.label("sentence_text"),
@@ -93,6 +94,7 @@ class PostgresArticleSearchRepository:
                 crawl_url_id=row["crawl_url_id"],
                 title=row["title"],
                 url=row["url"],
+                source_kind=row["source_kind"],
                 cosine_distance=float(row["cosine_distance"]),
                 sentence_id=row["sentence_id"],
                 sentence_text=row["sentence_text"],

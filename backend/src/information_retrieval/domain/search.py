@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Literal
 
 
 class InvalidSearchQueryError(Exception):
@@ -14,6 +15,7 @@ class ArticleSearchCandidate:
     crawl_url_id: int
     title: str | None
     url: str
+    source_kind: Literal["url", "manual"]
     cosine_distance: float
     sentence_id: int
     sentence_text: str
@@ -37,6 +39,7 @@ class RelatedArticle:
     crawl_url_id: int
     title: str | None
     url: str
+    source_kind: Literal["url", "manual"]
     score: float
     matched_query_sentence: str
     matched_article_sentence: MatchedArticleSentence

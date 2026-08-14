@@ -45,6 +45,7 @@ def _to_response(result: ArticleSearchResult) -> SearchArticlesResponse:
             crawl_url_id=article.crawl_url_id,
             title=article.title,
             url=article.url,
+            source_kind=article.source_kind,
             score=round(article.score, 6),
             matched_query_sentence=article.matched_query_sentence,
             matched_article_sentence=MatchedArticleSentenceResponse(

@@ -5,6 +5,7 @@ from typing import Literal
 # The status vocabulary is fixed by the spec so both the database check constraint and
 # the application flow reason about the exact same closed set of processing outcomes.
 CrawlStatus = Literal["pending", "completed", "failed"]
+ArticleSourceKind = Literal["url", "manual"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,3 +20,5 @@ class CrawlUrl:
     error_reason: str | None
     created_at: datetime
     updated_at: datetime
+    source_kind: ArticleSourceKind = "url"
+    display_title: str | None = None

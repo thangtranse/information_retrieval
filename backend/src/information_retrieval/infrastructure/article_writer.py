@@ -2,9 +2,11 @@ import os
 import tempfile
 from pathlib import Path
 
-# All article files live under a fixed relative directory so the path stored in the database
-# is stable across the CLI, the API and the Docker bind mount that all run from backend/.
-_ARTICLES_DIR = Path("data") / "articles"
+# The storage target is anchored to backend/ because VnCoreNLP changes the process working
+# directory while loading its Java model. The database still stores the stable relative path.
+_BACKEND_ROOT = Path(__file__).resolve().parents[3]
+_ARTICLES_RELATIVE_DIR = Path("data") / "articles"
+_ARTICLES_DIR = _BACKEND_ROOT / _ARTICLES_RELATIVE_DIR
 
 
 class Utf8ArticleFileStorage:
@@ -32,4 +34,4 @@ class Utf8ArticleFileStorage:
             Path(temp_name).unlink(missing_ok=True)
             raise
 
-        return target.as_posix()
+        return (_ARTICLES_RELATIVE_DIR / target.name).as_posix()

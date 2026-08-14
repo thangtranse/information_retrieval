@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 
 from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import (
@@ -45,6 +46,16 @@ class CrawlUrlRow(Base):
     )
     file_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_kind: Mapped[str] = mapped_column(
+        String(16),
+        CheckConstraint(
+            "source_kind IN ('url', 'manual')",
+            name="crawl_urls_source_kind_check",
+        ),
+        nullable=False,
+        server_default="url",
+    )
+    display_title: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -287,9 +298,22 @@ def create_database_engine(database_url: str) -> Engine:
 
 
 def initialize_schema(engine: Engine) -> None:
-    """Create missing tables idempotently without adding migration machinery to this scope."""
+    """Create fresh tables and apply the focused idempotent upgrade needed by existing data."""
     Base.metadata.create_all(engine)
+    _apply_article_source_metadata_migration(engine)
     _ensure_crawled_article_keyset_index(engine)
+
+
+def _apply_article_source_metadata_migration(engine: Engine) -> None:
+    """Upgrade existing crawl tables because create_all cannot add the manual-source columns."""
+    migration_path = (
+        Path(__file__).resolve().parents[3] / "migrations/0001_article_source_metadata.sql"
+    )
+    statements = migration_path.read_text(encoding="utf-8").split("-- statement-breakpoint")
+    with engine.begin() as connection:
+        for statement in statements:
+            if statement.strip():
+                connection.exec_driver_sql(statement)
 
 
 def ensure_sentence_embedding_cosine_index(engine: Engine) -> None:
