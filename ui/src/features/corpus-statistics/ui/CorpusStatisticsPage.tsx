@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Database, RefreshCcw } from "lucide-react";
+import { ArrowLeft, Database, RefreshCcw } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
 
 import {

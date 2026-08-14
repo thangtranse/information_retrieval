@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from dataclasses import dataclass
 
 from information_retrieval.domain.article import BlockType
@@ -15,6 +16,17 @@ CHAR_MAP = {
     "—": " ",
     "_": " ",
 }
+
+UNWANTED_COMBINING_MARKS = frozenset(
+    {"\u0301", "\u0300", "\u0323", "\u0309", "\u0303", "\u0302", "\u031b"}
+)
+UNWANTED_SYMBOLS = frozenset({"+", "&", "*", "=", "#", "@", "×", "°", "‰"})
+UNWANTED_CHARACTER_TRANSLATION = str.maketrans(
+    {
+        **{character: None for character in UNWANTED_COMBINING_MARKS},
+        **{character: " " for character in UNWANTED_SYMBOLS},
+    }
+)
 
 
 class ArticlePreprocessingError(Exception):
@@ -75,14 +87,27 @@ class ArticleTextPart:
 
 def normalize_article_text(raw_text: str) -> str:
     """Keep model input stable across typographic variants and invisible crawl artifacts."""
-    normalized = raw_text.replace("&gt;", "")
+    normalized = _normalize_case_and_unwanted_characters(raw_text.replace("&gt;", ""))
     for source, target in CHAR_MAP.items():
         normalized = normalized.replace(source, target)
-    normalized = normalized.replace("\u200b", "")
-    normalized = normalized.replace("\ufeff", "")
-    normalized = normalized.replace("\xa0", " ")
-    normalized = re.sub(r"[ \t]+", " ", normalized)
-    return normalized.strip()
+    return _normalize_whitespace_and_invisible_characters(normalized)
+
+
+def normalize_segmented_text(segmented_text: str) -> str:
+    """Preserve VnCoreNLP word joiners while enforcing the corpus and query text policy."""
+    normalized = _normalize_case_and_unwanted_characters(segmented_text)
+    return _normalize_whitespace_and_invisible_characters(normalized)
+
+
+def _normalize_case_and_unwanted_characters(text: str) -> str:
+    """Compose valid Vietnamese accents before removing only the explicitly rejected marks."""
+    return unicodedata.normalize("NFC", text).lower().translate(UNWANTED_CHARACTER_TRANSLATION)
+
+
+def _normalize_whitespace_and_invisible_characters(text: str) -> str:
+    """Collapse replacement gaps so removed crawl noise cannot create unstable model tokens."""
+    normalized = text.replace("\u200b", "").replace("\ufeff", "").replace("\xa0", " ")
+    return re.sub(r"\s+", " ", normalized).strip()
 
 
 def split_article_text(
