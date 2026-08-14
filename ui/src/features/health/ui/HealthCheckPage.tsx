@@ -16,9 +16,6 @@ export function HealthCheckPage() {
         </Button>
 
         <header className="space-y-4">
-          <div className="flex size-11 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-sm">
-            <Activity aria-hidden="true" className="size-5" />
-          </div>
           <div className="space-y-2">
             <p className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
               Information Retrieval
