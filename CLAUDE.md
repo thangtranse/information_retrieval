@@ -4,20 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `AGENTS.md` holds the binding engineering rules for this repo; read it first. This file adds workflow and architecture context and must not contradict it.
 
-## Superpowers workflow (mandatory)
+## Skills and Superpowers (opt-in only)
 
-This project is driven by Superpowers plans and specs. All work is anchored in `docs/superpowers/`:
+Do not automatically invoke, suggest, or require Superpowers for repository work.
 
-- `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` — the design/contract for a change.
-- `docs/superpowers/plans/YYYY-MM-DD-<topic>.md` — the checkbox (`- [ ]`) implementation plan derived from a spec.
-
-Rules:
-
-- Only implement work that is described by a spec and plan under `docs/superpowers/`. If a request has no matching document, write/extend the spec (and then the plan) first, get it approved, and only then write code.
-- Execute plans task-by-task via the Superpowers execution skills referenced in the plan header (`superpowers:subagent-driven-development` or `superpowers:executing-plans`), and keep checkboxes updated as tasks complete.
-- Never silently widen scope beyond a plan's "In scope"; out-of-scope items go back into a new spec.
-- New documents follow the existing filename date prefix and the existing section shape (Goal / Scope with In-and-Out / Architecture; plans use Goal / Architecture / Tech Stack / Global Constraints / File Structure / checkbox tasks).
-- Documents are written in the same mixed Vietnamese-with-English-technical-terms style as the existing ones.
+- Use a Superpowers skill only when the user explicitly names that skill or explicitly asks to use Superpowers for the current task.
+- Requests such as review, plan, debug, refactor, implement, or verify must be handled directly unless the user also explicitly requests Superpowers.
+- Do not pause ordinary work to create a Superpowers design, spec, implementation plan, worktree, or subagent workflow.
+- Existing documents under `docs/superpowers/` are optional reference material, not mandatory execution gates.
+- If the user explicitly activates Superpowers, follow the named skill and use the existing `docs/superpowers/` conventions where relevant.
 
 ## Commands
 

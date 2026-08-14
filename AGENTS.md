@@ -13,6 +13,14 @@
 - Add a docstring or comment to every function or method containing business logic. Explain WHY the function, invariant, or design decision exists; never narrate WHAT the code visibly does.
 - Do not add speculative abstractions, dependencies, database layers, or features without a current requirement.
 
+## Skills and Superpowers
+
+- Do not automatically invoke, suggest, or require any Superpowers skill or workflow.
+- Use a Superpowers skill only when the user explicitly names that skill or explicitly asks to use Superpowers for the current task.
+- A normal request to review, plan, debug, refactor, implement, or verify work does not count as permission to activate Superpowers.
+- Existing files under `docs/superpowers/` are reference material only. They do not require new work to create a spec or plan unless the user explicitly requests that workflow.
+- When Superpowers is not explicitly requested, handle the task directly using the repository rules in this file.
+
 ## Tooling
 
 - Use `uv` for Python installation, dependency management, locking, and command execution.

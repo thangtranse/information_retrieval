@@ -30,7 +30,8 @@ services:
       APP_UI_ORIGIN: http://localhost:5173
       APP_DATABASE_URL: postgresql+psycopg://information_retrieval:information_retrieval@postgres:5432/information_retrieval
       APP_CRAWLER_BASE_DOMAIN: https://vnexpress.net/
-      APP_CRAWLER_SEED_URLS: '["https://vnexpress.net/kinh-doanh"]'
+      APP_CRAWLER_SEED_URLS: '["https://vnexpress.net/thoi-su", "https://vnexpress.net/thoi-su-p2", "https://vnexpress.net/thoi-su-p3", "https://vnexpress.net/thoi-su-p4", "https://vnexpress.net/thoi-su-p5", "https://vnexpress.net/thoi-su-p6", "https://vnexpress.net/thoi-su-p7", "https://vnexpress.net/kinh-doanh", "https://vnexpress.net/kinh-doanh-p2", "https://vnexpress.net/kinh-doanh-p3", "https://vnexpress.net/the-gioi", "https://vnexpress.net/the-gioi-p2", "https://vnexpress.net/the-gioi-p3", "https://vnexpress.net/the-gioi-p4", "https://vnexpress.net/khoa-hoc-cong-nghe", "https://vnexpress.net/khoa-hoc-cong-nghe-p2", "https://vnexpress.net/khoa-hoc-cong-nghe-p3", "https://vnexpress.net/khoa-hoc-cong-nghe-p4", "https://vnexpress.net/the-thao", "https://vnexpress.net/the-thao-p2", "https://vnexpress.net/phap-luat", "https://vnexpress.net/phap-luat-p2", "https://vnexpress.net/phap-luat-p3", "https://vnexpress.net/giao-duc", "https://vnexpress.net/giao-duc-p2", "https://vnexpress.net/giao-duc-p3", "https://vnexpress.net/doi-song", "https://vnexpress.net/doi-song-p2", "https://vnexpress.net/thu-gian", "https://vnexpress.net/thu-gian-p2", "https://vnexpress.net/thu-gian-p3", "https://vnexpress.net/thu-gian-p4"]'
+      APP_SEGMENTER_MODEL_DIR: 'data/models/py_vncorenlp'
     volumes:
       # Crawled article files live on the host so the CLI and API share one durable output
       # directory regardless of which container wrote them.
