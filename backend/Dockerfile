@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 # Python 3.14 base; uv is copied from its published image so the container uses the exact
 # same installer and lockfile resolution as local development.
 FROM python:3.14-slim
@@ -18,11 +20,13 @@ RUN apt-get update \
 
 # Install dependencies before the source so dependency layers cache across code changes.
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    uv sync --frozen --no-dev --no-install-project
 
 COPY src ./src
 COPY migrations ./migrations
-RUN uv sync --frozen --no-dev
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    uv sync --frozen --no-dev
 
 EXPOSE 8000
 
