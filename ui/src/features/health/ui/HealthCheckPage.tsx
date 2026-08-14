@@ -1,4 +1,4 @@
-import { ArrowLeft, Activity } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router";
 
 import { HealthStatus } from "@/features/health/ui/HealthStatus";
