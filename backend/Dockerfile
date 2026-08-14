@@ -13,9 +13,10 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/app/.venv
 
-# VnCoreNLP launches its Java jar at processing time; the headless runtime avoids GUI packages.
+# VnCoreNLP launches its Java jar at processing time and its Python wrapper shells out to wget
+# during explicit model installation.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends default-jre-headless \
+    && apt-get install -y --no-install-recommends default-jre-headless wget \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies before the source so dependency layers cache across code changes.

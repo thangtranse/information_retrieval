@@ -1,4 +1,6 @@
 import os
+import shutil
+import tempfile
 from pathlib import Path
 from threading import Lock
 from typing import cast
@@ -38,11 +40,31 @@ class VnCoreNlpWordSegmenter:
 
     @classmethod
     def download_model(cls, model_dir: Path) -> bool:
-        """Keep model download explicit because preprocessing should be offline-repeatable."""
+        """Stage downloads so an interrupted attempt cannot poison the durable model cache."""
         if cls.is_model_installed(model_dir):
             return False
         model_dir.mkdir(parents=True, exist_ok=True)
-        py_vncorenlp.download_model(save_dir=str(model_dir))
+        previous_working_dir = Path.cwd()
+        try:
+            with tempfile.TemporaryDirectory(prefix="vncorenlp-") as temporary_dir:
+                temporary_path = Path(temporary_dir)
+                staged_model_dir = temporary_path / "model"
+                staged_model_dir.mkdir()
+                os.chdir(temporary_path)
+                py_vncorenlp.download_model(save_dir=str(staged_model_dir))
+                if not cls.is_model_installed(staged_model_dir):
+                    raise ArticleSegmentationError(
+                        "VnCoreNLP download completed without the required runtime files"
+                    )
+                # WHY: Publishing only a verified staging tree repairs partial bind-mounted
+                # caches without deleting the last usable model before network work succeeds.
+                shutil.copytree(staged_model_dir, model_dir, dirs_exist_ok=True)
+        except ArticleSegmentationError:
+            raise
+        except Exception as error:
+            raise ArticleSegmentationError(f"cannot download VnCoreNLP model: {error}") from error
+        finally:
+            os.chdir(previous_working_dir)
         if not cls.is_model_installed(model_dir):
             raise ArticleSegmentationError(
                 f"VnCoreNLP download did not produce a usable model at {model_dir}"
