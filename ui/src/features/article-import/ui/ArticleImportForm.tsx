@@ -1,11 +1,12 @@
 import type { ChangeEventHandler, FocusEventHandler, FormEventHandler, RefObject } from "react";
-import { CircleCheck, FileText, Link2, ShieldCheck } from "lucide-react";
+import { FileText, Link2, LoaderCircle, Play, ShieldCheck } from "lucide-react";
 
 import type {
-  ArticleImportDraft,
   ArticleImportMode,
   ArticleUrlError,
 } from "@/features/article-import/model/article-import";
+import type { ImportStage } from "@/features/article-import/model/use-article-import-pipeline";
+import { ArticleImportProgress } from "@/features/article-import/ui/ArticleImportProgress";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
@@ -15,15 +16,19 @@ import { Textarea } from "@/shared/ui/textarea";
 interface ArticleImportFormProps {
   mode: ArticleImportMode;
   url: string;
+  title: string;
   content: string;
   sourceDomain: string;
   urlError: ArticleUrlError | null;
+  titleError: boolean;
   contentError: boolean;
   canSubmit: boolean;
-  submittedDraft: ArticleImportDraft | null;
+  isRunning: boolean;
+  stages: ImportStage[];
   contentRef: RefObject<HTMLTextAreaElement | null>;
   onModeChange: (mode: ArticleImportMode) => void;
   onUrlChange: ChangeEventHandler<HTMLInputElement>;
+  onTitleChange: ChangeEventHandler<HTMLInputElement>;
   onContentChange: ChangeEventHandler<HTMLTextAreaElement>;
   onUrlBlur: FocusEventHandler<HTMLInputElement>;
   onContentBlur: FocusEventHandler<HTMLTextAreaElement>;
@@ -42,14 +47,18 @@ export function ArticleImportForm({
   mode,
   url,
   content,
+  title,
   sourceDomain,
   urlError,
+  titleError,
   contentError,
   canSubmit,
-  submittedDraft,
+  isRunning,
+  stages,
   contentRef,
   onModeChange,
   onUrlChange,
+  onTitleChange,
   onContentChange,
   onUrlBlur,
   onContentBlur,
@@ -91,6 +100,7 @@ export function ArticleImportForm({
                 inputMode="url"
                 onBlur={onUrlBlur}
                 onChange={onUrlChange}
+                disabled={isRunning}
                 placeholder={`https://${sourceDomain}/...`}
                 type="url"
                 value={url}
@@ -111,6 +121,23 @@ export function ArticleImportForm({
             </TabsContent>
 
             <TabsContent className="mt-5 space-y-2.5" value="content">
+              <label className="text-sm font-medium" htmlFor="article-title">
+                Tiêu đề
+              </label>
+              <Input
+                aria-describedby={titleError ? "article-title-error" : undefined}
+                aria-invalid={titleError}
+                disabled={isRunning}
+                id="article-title"
+                onChange={onTitleChange}
+                placeholder="Nhập tiêu đề bài viết"
+                value={title}
+              />
+              {titleError ? (
+                <p className="text-sm text-destructive" id="article-title-error" role="alert">
+                  Vui lòng nhập tiêu đề bài viết.
+                </p>
+              ) : null}
               <label className="text-sm font-medium" htmlFor="article-content">
                 Nội dung bài báo
               </label>
@@ -119,6 +146,7 @@ export function ArticleImportForm({
                 aria-invalid={contentError}
                 className="min-h-0 resize-none [field-sizing:fixed] px-4 py-3 text-base leading-6 shadow-none md:text-base"
                 id="article-content"
+                disabled={isRunning}
                 onBlur={onContentBlur}
                 onChange={onContentChange}
                 placeholder="Dán toàn bộ nội dung bài báo tại đây…"
@@ -132,7 +160,7 @@ export function ArticleImportForm({
                 </p>
               ) : (
                 <p className="text-xs leading-5 text-muted-foreground" id="article-content-help">
-                  Nội dung sẽ được chuẩn hóa và lưu trữ khi API được tích hợp.
+                  Mỗi đoạn cách nhau bằng một dòng trống sẽ được lưu thành một block riêng.
                 </p>
               )}
             </TabsContent>
@@ -140,29 +168,24 @@ export function ArticleImportForm({
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs leading-5 text-muted-foreground">
-              Phiên bản hiện tại chỉ kiểm tra dữ liệu, chưa gửi lên hệ thống.
+              Bài viết sẽ tự động đi qua preprocess, segment và embedding.
             </p>
             <Button
               className="h-10 w-full px-5 sm:w-auto"
-              disabled={!canSubmit}
+              disabled={!canSubmit || isRunning}
               size="lg"
               type="submit"
             >
-              <ShieldCheck aria-hidden="true" />
-              Kiểm tra dữ liệu
+              {isRunning ? (
+                <LoaderCircle aria-hidden="true" className="animate-spin" />
+              ) : (
+                <Play aria-hidden="true" />
+              )}
+              {isRunning ? "Đang xử lý" : "Nhập và xử lý"}
             </Button>
           </div>
 
-          {submittedDraft ? (
-            <div
-              className="flex items-start gap-2 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-200"
-              data-import-kind={submittedDraft.kind}
-              role="status"
-            >
-              <CircleCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              Dữ liệu hợp lệ, sẵn sàng gửi khi API được tích hợp.
-            </div>
-          ) : null}
+          <ArticleImportProgress stages={stages} />
         </form>
       </CardContent>
     </Card>

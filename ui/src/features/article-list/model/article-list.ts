@@ -1,6 +1,8 @@
 export interface CrawledArticle {
   id: number;
   url: string;
+  source_kind: "url" | "manual";
+  display_title: string | null;
   updated_at: string;
 }
 

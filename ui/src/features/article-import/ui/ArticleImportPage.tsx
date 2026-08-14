@@ -4,6 +4,7 @@ import { Link } from "react-router";
 
 import type { ArticleImportMode } from "@/features/article-import/model/article-import";
 import { useArticleImportForm } from "@/features/article-import/model/use-article-import-form";
+import { useArticleImportPipeline } from "@/features/article-import/model/use-article-import-pipeline";
 import { ArticleImportForm } from "@/features/article-import/ui/ArticleImportForm";
 import { env } from "@/shared/config/env";
 import { useAutoResizeTextarea } from "@/shared/hooks/use-auto-resize-textarea";
@@ -11,6 +12,7 @@ import { Button } from "@/shared/ui/button";
 
 export function ArticleImportPage() {
   const importForm = useArticleImportForm(env.articleSourceDomain);
+  const pipeline = useArticleImportPipeline();
   const contentRef = useAutoResizeTextarea(importForm.content, {
     minRows: 8,
     maxRows: 16,
@@ -29,6 +31,10 @@ export function ArticleImportPage() {
     importForm.updateContent(event.target.value);
   };
 
+  const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    importForm.updateTitle(event.target.value);
+  };
+
   const handleUrlBlur = () => {
     importForm.blurUrl();
   };
@@ -40,7 +46,8 @@ export function ArticleImportPage() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     // WHY: The page owns submission policy so the form remains a reusable presentational component.
     event.preventDefault();
-    importForm.submit();
+    const draft = importForm.prepareSubmission();
+    if (draft) void pipeline.run(draft);
   };
 
   return (
@@ -83,15 +90,19 @@ export function ArticleImportPage() {
           content={importForm.content}
           contentError={importForm.contentError}
           contentRef={contentRef}
+          isRunning={pipeline.isRunning}
           mode={importForm.mode}
           onContentBlur={handleContentBlur}
           onContentChange={handleContentChange}
           onModeChange={handleModeChange}
           onSubmit={handleSubmit}
+          onTitleChange={handleTitleChange}
           onUrlBlur={handleUrlBlur}
           onUrlChange={handleUrlChange}
           sourceDomain={env.articleSourceDomain}
-          submittedDraft={importForm.submittedDraft}
+          stages={pipeline.stages}
+          title={importForm.title}
+          titleError={importForm.titleError}
           url={importForm.url}
           urlError={importForm.urlError}
         />

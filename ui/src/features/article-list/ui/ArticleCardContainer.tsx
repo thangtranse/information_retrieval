@@ -9,12 +9,13 @@ export function ArticleCardContainer({
   article: CrawledArticle;
   titleId: string;
 }) {
-  const previewQuery = useArticlePreview(article.id);
+  const previewEnabled = article.source_kind === "url";
+  const previewQuery = useArticlePreview(article.id, previewEnabled);
 
   return (
     <ArticleCard
       article={article}
-      isPreviewLoading={previewQuery.isPending}
+      isPreviewLoading={previewEnabled && previewQuery.isPending}
       preview={previewQuery.data}
       previewFailed={previewQuery.isError}
       titleId={titleId}

@@ -18,6 +18,7 @@ export interface RelatedArticle {
   readonly crawl_url_id: number;
   readonly title: string | null;
   readonly url: string;
+  readonly source_kind: "url" | "manual";
   readonly score: number;
   readonly matched_query_sentence: string;
   readonly matched_article_sentence: MatchedArticleSentence;

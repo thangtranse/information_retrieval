@@ -1,4 +1,4 @@
-import { ArrowLeft, Newspaper, RefreshCcw } from "lucide-react";
+import { ArrowLeft, RefreshCcw } from "lucide-react";
 import { Link } from "react-router";
 
 import { useCrawledArticles } from "@/features/article-list/model/use-crawled-articles";

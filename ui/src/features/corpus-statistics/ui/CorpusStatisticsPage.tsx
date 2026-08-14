@@ -84,9 +84,6 @@ export function CorpusStatisticsPage() {
         </div>
 
         <header className="space-y-4">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-neutral-950 text-white shadow-lg shadow-black/10">
-            <BarChart3 aria-hidden="true" className="size-5" />
-          </div>
           <div className="space-y-2">
             <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">
               Phân tích dữ liệu
@@ -129,18 +126,6 @@ export function CorpusStatisticsPage() {
 
         {statistics && statistics.document_count > 0 ? (
           <div className="space-y-6">
-            <Card className="bg-neutral-950 text-white ring-neutral-950">
-              <CardContent className="flex items-end justify-between gap-4 py-2">
-                <div className="space-y-1">
-                  <p className="text-sm text-neutral-400">Tổng số bài viết</p>
-                  <p className="font-heading text-4xl font-semibold tabular-nums">
-                    {statistics.document_count.toLocaleString("vi-VN")}
-                  </p>
-                </div>
-                <Database aria-hidden="true" className="size-8 text-neutral-500" />
-              </CardContent>
-            </Card>
-
             <section aria-label="So sánh phân phối corpus" className="grid gap-6 lg:grid-cols-2">
               <DistributionPanel
                 description="Thống kê từ normalized_text trước khi áp dụng word segmentation."

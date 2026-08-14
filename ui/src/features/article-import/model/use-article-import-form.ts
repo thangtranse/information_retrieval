@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import {
+  buildManualArticleBlocks,
   normalizeArticleContent,
   validateArticleUrl,
   type ArticleImportDraft,
@@ -11,47 +12,52 @@ import {
 interface ArticleImportFormController {
   mode: ArticleImportMode;
   url: string;
+  title: string;
   content: string;
   urlError: ArticleUrlError | null;
+  titleError: boolean;
   contentError: boolean;
   canSubmit: boolean;
-  submittedDraft: ArticleImportDraft | null;
   changeMode: (mode: ArticleImportMode) => void;
   updateUrl: (url: string) => void;
+  updateTitle: (title: string) => void;
   updateContent: (content: string) => void;
   blurUrl: () => void;
   blurContent: () => void;
-  submit: () => void;
+  prepareSubmission: () => ArticleImportDraft | null;
 }
 
 export function useArticleImportForm(sourceDomain: string): ArticleImportFormController {
   const [mode, setMode] = useState<ArticleImportMode>("url");
   const [url, setUrl] = useState("");
+  const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [urlTouched, setUrlTouched] = useState(false);
+  const [titleTouched, setTitleTouched] = useState(false);
   const [contentTouched, setContentTouched] = useState(false);
-  const [submittedDraft, setSubmittedDraft] = useState<ArticleImportDraft | null>(null);
   const urlValidation = useMemo(() => validateArticleUrl(url, sourceDomain), [sourceDomain, url]);
   const normalizedContent = normalizeArticleContent(content);
-  const canSubmit =
-    mode === "url" ? urlValidation.canonicalUrl !== null : normalizedContent !== null;
+  const manualBlocks = buildManualArticleBlocks(title, content);
+  const canSubmit = mode === "url" ? urlValidation.canonicalUrl !== null : manualBlocks !== null;
 
   const changeMode = (nextMode: ArticleImportMode) => {
     // WHY: Each source keeps its draft across tabs, while stale success feedback must not cross modes.
     setMode(nextMode);
-    setSubmittedDraft(null);
   };
 
   const updateUrl = (nextUrl: string) => {
     // WHY: Editing invalidates the previous prepared payload but preserves touched state for live correction.
     setUrl(nextUrl);
-    setSubmittedDraft(null);
+  };
+
+  const updateTitle = (nextTitle: string) => {
+    // WHY: Title identity remains independent from paragraph edits across tab switches.
+    setTitle(nextTitle);
   };
 
   const updateContent = (nextContent: string) => {
     // WHY: Editing invalidates the previous prepared payload but keeps the alternate URL draft intact.
     setContent(nextContent);
-    setSubmittedDraft(null);
   };
 
   const blurUrl = () => {
@@ -65,36 +71,37 @@ export function useArticleImportForm(sourceDomain: string): ArticleImportFormCon
     setContentTouched(true);
   };
 
-  const submit = () => {
-    // WHY: Local drafts define the future API boundary without implying that persistence already occurred.
+  const prepareSubmission = (): ArticleImportDraft | null => {
+    // WHY: Validation produces the exact immutable payload consumed by the ordered API pipeline.
     if (mode === "url") {
       setUrlTouched(true);
-      if (!urlValidation.canonicalUrl) return;
+      if (!urlValidation.canonicalUrl) return null;
 
       setUrl(urlValidation.canonicalUrl);
-      setSubmittedDraft({ kind: "url", url: urlValidation.canonicalUrl });
-      return;
+      return { kind: "url", url: urlValidation.canonicalUrl };
     }
 
+    setTitleTouched(true);
     setContentTouched(true);
-    if (!normalizedContent) return;
-
-    setSubmittedDraft({ kind: "content", content: normalizedContent });
+    if (!manualBlocks) return null;
+    return { kind: "content", blocks: manualBlocks };
   };
 
   return {
     mode,
     url,
+    title,
     content,
     urlError: urlTouched ? urlValidation.error : null,
+    titleError: titleTouched && title.trim().length === 0,
     contentError: contentTouched && normalizedContent === null,
     canSubmit,
-    submittedDraft,
     changeMode,
     updateUrl,
+    updateTitle,
     updateContent,
     blurUrl,
     blurContent,
-    submit,
+    prepareSubmission,
   };
 }

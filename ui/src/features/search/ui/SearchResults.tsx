@@ -54,7 +54,8 @@ export function SearchResults({ result }: SearchResultsProps) {
 
       <div className="space-y-4">
         {result.articles.map((article) => {
-          const hostname = getHostname(article.url);
+          const isManual = article.source_kind === "manual";
+          const hostname = isManual ? "Nhập thủ công" : getHostname(article.url);
           const titleId = `search-result-title-${article.crawl_url_id}`;
 
           return (
@@ -103,15 +104,17 @@ export function SearchResults({ result }: SearchResultsProps) {
                     {article.matched_article_sentence.paragraph_part_num}, câu{" "}
                     {article.matched_article_sentence.segment_num}
                   </span>
-                  <a
-                    className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    href={article.url}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    Mở bài viết
-                    <ExternalLink aria-hidden="true" className="size-4" />
-                  </a>
+                  {!isManual ? (
+                    <a
+                      className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      href={article.url}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      Mở bài viết
+                      <ExternalLink aria-hidden="true" className="size-4" />
+                    </a>
+                  ) : null}
                 </CardFooter>
               </Card>
             </article>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarClock, ExternalLink, Link2 } from "lucide-react";
+import { CalendarClock, ExternalLink, FileText, Link2 } from "lucide-react";
 
 import type { ArticlePreview, CrawledArticle } from "@/features/article-list/model/article-list";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -51,8 +51,9 @@ export function ArticleCard({
   previewFailed,
   titleId,
 }: ArticleCardProps) {
-  const hostname = getHostname(article.url);
-  const title = preview?.title ?? hostname;
+  const isManual = article.source_kind === "manual";
+  const hostname = isManual ? "Nhập thủ công" : getHostname(article.url);
+  const title = article.display_title ?? preview?.title ?? hostname;
 
   return (
     <Card className="gap-0 border-0 bg-white py-0 shadow-lg shadow-black/5 ring-black/8 transition-shadow hover:shadow-xl">
@@ -63,7 +64,11 @@ export function ArticleCard({
 
       <CardHeader className="gap-3 py-5">
         <div className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          <Link2 aria-hidden="true" className="size-3.5" />
+          {isManual ? (
+            <FileText aria-hidden="true" className="size-3.5" />
+          ) : (
+            <Link2 aria-hidden="true" className="size-3.5" />
+          )}
           {preview?.site_name ?? hostname}
         </div>
         {isPreviewLoading ? (
@@ -101,9 +106,11 @@ export function ArticleCard({
           </p>
         ) : (
           <p className="text-sm leading-6 text-muted-foreground">
-            {previewFailed
-              ? "Không thể tải nội dung xem trước. Bạn vẫn có thể mở bài viết nguồn."
-              : "Bài viết chưa cung cấp mô tả xem trước."}
+            {isManual
+              ? "Nội dung được nhập trực tiếp vào kho dữ liệu."
+              : previewFailed
+                ? "Không thể tải nội dung xem trước. Bạn vẫn có thể mở bài viết nguồn."
+                : "Bài viết chưa cung cấp mô tả xem trước."}
           </p>
         )}
       </CardContent>
@@ -113,15 +120,17 @@ export function ArticleCard({
           <CalendarClock aria-hidden="true" className="size-3.5" />
           Cập nhật {dateFormatter.format(new Date(article.updated_at))}
         </span>
-        <a
-          className="inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          href={article.url}
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          Mở bài viết
-          <ExternalLink aria-hidden="true" className="size-4" />
-        </a>
+        {!isManual ? (
+          <a
+            className="inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            href={article.url}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Mở bài viết
+            <ExternalLink aria-hidden="true" className="size-4" />
+          </a>
+        ) : null}
       </CardFooter>
     </Card>
   );

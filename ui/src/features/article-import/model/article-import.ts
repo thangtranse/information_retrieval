@@ -1,7 +1,12 @@
 export type ArticleImportMode = "url" | "content";
 
 export type ArticleImportDraft =
-  { kind: "url"; url: string } | { kind: "content"; content: string };
+  { kind: "url"; url: string } | { kind: "content"; blocks: ManualArticleBlock[] };
+
+export interface ManualArticleBlock {
+  type: "title" | "paragraph";
+  text: string;
+}
 
 export type ArticleUrlError =
   "required" | "invalid-url" | "unsupported-protocol" | "invalid-domain";
@@ -51,4 +56,22 @@ export function normalizeArticleContent(content: string): string | null {
   // WHY: Whitespace-only records cannot provide searchable source material.
   const normalizedContent = content.trim();
   return normalizedContent.length > 0 ? normalizedContent : null;
+}
+
+export function buildManualArticleBlocks(
+  rawTitle: string,
+  rawContent: string,
+): ManualArticleBlock[] | null {
+  // WHY: Blank-line boundaries preserve the paragraphs users intentionally provide to the corpus.
+  const title = rawTitle.trim();
+  const paragraphs = rawContent
+    .trim()
+    .split(/\n\s*\n/u)
+    .map((paragraph) => paragraph.replace(/\s*\n\s*/gu, " ").trim())
+    .filter(Boolean);
+  if (!title || paragraphs.length === 0) return null;
+  return [
+    { type: "title", text: title },
+    ...paragraphs.map((text): ManualArticleBlock => ({ type: "paragraph", text })),
+  ];
 }
