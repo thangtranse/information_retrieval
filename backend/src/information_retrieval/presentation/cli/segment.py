@@ -91,6 +91,7 @@ def run(argv: list[str] | None = None) -> int:
         paragraph_repository=paragraph_repository,
         segmenter=segmenter,
         sentence_repository=sentence_repository,
+        min_source_word_count=settings.segmentation_min_source_word_count,
     )
     summary = segment.execute(args.crawl_id)
 

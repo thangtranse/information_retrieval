@@ -147,6 +147,7 @@ def _build_segment_article_use_case() -> SegmentProcessedParagraphs:
         paragraph_repository=PostgresProcessedParagraphRepository(get_crawl_engine()),
         segmenter=_get_shared_segmenter(),
         sentence_repository=PostgresSegmentedSentenceRepository(get_crawl_engine()),
+        min_source_word_count=get_settings().segmentation_min_source_word_count,
     )
 
 

@@ -25,10 +25,12 @@ class SegmentProcessedParagraphs:
         paragraph_repository: NormalizedParagraphRepository,
         segmenter: WordSegmenter,
         sentence_repository: SegmentedSentenceRepository,
+        min_source_word_count: int = 4,
     ) -> None:
         self._paragraph_repository = paragraph_repository
         self._segment_parts = SegmentNormalizedTextParts(segmenter)
         self._sentence_repository = sentence_repository
+        self._min_source_word_count = min_source_word_count
 
     def execute(self, crawl_id: int | None = None) -> SegmentationSummary:
         """Validate and build a full document before replacing its durable snapshot."""
@@ -46,8 +48,9 @@ class SegmentProcessedParagraphs:
 
         for document_id, paragraphs in grouped_rows:
             try:
-                sentences = self._segment_document(paragraphs)
-                corpus_snapshot = build_corpus_document_snapshot(paragraphs, sentences)
+                eligible_paragraphs = self._eligible_paragraphs(paragraphs)
+                sentences = self._segment_document(eligible_paragraphs)
+                corpus_snapshot = build_corpus_document_snapshot(eligible_paragraphs, sentences)
                 self._sentence_repository.replace_for_crawl_url(
                     document_id, sentences, corpus_snapshot
                 )
@@ -56,7 +59,7 @@ class SegmentProcessedParagraphs:
                 continue
 
             segmented_documents += 1
-            processed_paragraphs += len(paragraphs)
+            processed_paragraphs += len(eligible_paragraphs)
             stored_segments += len(sentences)
 
         return SegmentationSummary(
@@ -66,6 +69,22 @@ class SegmentProcessedParagraphs:
             stored_segments=stored_segments,
             failures=failures,
         )
+
+    def _eligible_paragraphs(
+        self, paragraphs: list[StoredProcessedParagraph]
+    ) -> list[StoredProcessedParagraph]:
+        """Exclude short source fragments because they add noise to downstream retrieval."""
+        eligible = [
+            paragraph
+            for paragraph in paragraphs
+            if paragraph.source_word_count >= self._min_source_word_count
+        ]
+        if not eligible:
+            raise ArticleSegmentationError(
+                "no processed paragraphs meet the configured minimum source word count "
+                f"of {self._min_source_word_count}"
+            )
+        return eligible
 
     def _segment_document(
         self, paragraphs: list[StoredProcessedParagraph]

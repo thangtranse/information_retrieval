@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     crawler_seed_urls: list[str] = ["https://vnexpress.net/kinh-doanh"]
     crawler_document_delay_ms: int = Field(default=1000, ge=0)
     segmenter_model_dir: Path = Path("data/models/py_vncorenlp")
+    segmentation_min_source_word_count: int = Field(default=4, ge=0)
     phobert_model_name: str = "vinai/phobert-base"
     phobert_model_dir: Path = Path("data/models/vinai-phobert")
     embedding_batch_size: int = 16
