@@ -74,7 +74,11 @@ export function SearchResults({ result }: SearchResultsProps) {
                     >
                       {article.title ?? `Bài viết #${article.crawl_url_id}`}
                     </CardTitle>
-                    <p className="truncate text-sm text-muted-foreground">{hostname}</p>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                      <span className="truncate">{hostname}</span>
+                      <span aria-hidden="true">·</span>
+                      <span className="tabular-nums">ID bài viết: {article.crawl_url_id}</span>
+                    </div>
                   </div>
                   <span className="w-fit rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold tabular-nums">
                     {scoreFormatter.format(article.score)} tương đồng

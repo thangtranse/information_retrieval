@@ -63,13 +63,15 @@ export function ArticleCard({
       ) : null}
 
       <CardHeader className="gap-3 py-5">
-        <div className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
           {isManual ? (
             <FileText aria-hidden="true" className="size-3.5" />
           ) : (
             <Link2 aria-hidden="true" className="size-3.5" />
           )}
           {preview?.site_name ?? hostname}
+          <span aria-hidden="true">·</span>
+          <span className="tabular-nums">ID bài viết: {article.id}</span>
         </div>
         {isPreviewLoading ? (
           <div className="space-y-2">
