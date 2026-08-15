@@ -1,5 +1,6 @@
 import argparse
 import sys
+import time
 
 from information_retrieval.application.crawl_article import ArticleCrawlFailed, CrawlArticle
 from information_retrieval.application.discover_articles import DiscoverArticles
@@ -95,7 +96,8 @@ def run(argv: list[str] | None = None) -> int:
 
     completed = 0
     failed = 0
-    for row in [*queued, *retry_rows]:
+    crawl_rows = [*queued, *retry_rows]
+    for index, row in enumerate(crawl_rows):
         try:
             # Crawling by URL reuses the existing row, keeping a single code path shared with
             # the API rather than a CLI-only variant that could drift from it.
@@ -106,6 +108,13 @@ def run(argv: list[str] | None = None) -> int:
             failed += 1
             had_failure = True
             print(f'CRAWL id={failure.row.id} status=failed reason="{failure.row.error_reason}"')
+
+        if index < len(crawl_rows) - 1 and settings.crawler_document_delay_ms > 0:
+            # Throttle only between documents so the final result is not delayed and both
+            # successful and expected failed requests respect the same upstream pacing.
+            next_row = crawl_rows[index + 1]
+            print(f"CRAWL_WAIT delay_ms={settings.crawler_document_delay_ms} next_id={next_row.id}")
+            time.sleep(settings.crawler_document_delay_ms / 1000)
 
     print(
         f"SUMMARY seeds={len(settings.crawler_seed_urls)} discovered={discovered} "

@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +20,7 @@ class Settings(BaseSettings):
     )
     crawler_base_domain: str = "https://vnexpress.net/"
     crawler_seed_urls: list[str] = ["https://vnexpress.net/kinh-doanh"]
+    crawler_document_delay_ms: int = Field(default=1000, ge=0)
     segmenter_model_dir: Path = Path("data/models/py_vncorenlp")
     phobert_model_name: str = "vinai/phobert-base"
     phobert_model_dir: Path = Path("data/models/vinai-phobert")
