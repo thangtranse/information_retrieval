@@ -18,7 +18,9 @@ export interface ArticlePreview {
   site_name: string | null;
 }
 
-export const ARTICLE_PAGE_LIMIT = 5;
+// WHY: A full API-sized metadata page makes browsing feel populated while virtualization keeps
+// preview requests and mounted cards bounded to the visible window.
+export const ARTICLE_PAGE_LIMIT = 20;
 
 export const articleListQueryKeys = {
   all: ["crawled-articles"] as const,
