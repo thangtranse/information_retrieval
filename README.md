@@ -48,6 +48,13 @@ Batch script khám phá URL từ seed pages rồi tải tuần tự các bài m�
 make crawl
 ```
 
+Mặc định crawler chờ `1000` ms giữa hai tài liệu liên tiếp. Có thể đổi thời gian chờ hoặc đặt
+`0` để tắt bằng `APP_CRAWLER_DOCUMENT_DELAY_MS` trong `backend/.env`:
+
+```dotenv
+APP_CRAWLER_DOCUMENT_DELAY_MS=1500
+```
+
 Mặc định command không tải lại các URL đã có trong database. Để lấy toàn bộ record đang có
 `status='failed'` và thử tải lại tuần tự sau pha discovery, truyền flag qua biến `ARGS`:
 
@@ -67,7 +74,7 @@ curl -X POST http://localhost:8000/api/v1/crawler/articles \
   -d '{"url": "https://vnexpress.net/example.html"}'
 ```
 
-File nội dung ghi UTF-8 dạng block `<s>` dưới `backend/data/articles/<id>.txt`; trạng thái xử lý lưu ở bảng `crawl_urls`. Cấu hình `APP_DATABASE_URL`, `APP_CRAWLER_BASE_DOMAIN` và `APP_CRAWLER_SEED_URLS` (JSON array) trong `backend/.env`.
+File nội dung ghi UTF-8 dạng block `<s>` dưới `backend/data/articles/<id>.txt`; trạng thái xử lý lưu ở bảng `crawl_urls`. Cấu hình `APP_DATABASE_URL`, `APP_CRAWLER_BASE_DOMAIN`, `APP_CRAWLER_SEED_URLS` (JSON array) và `APP_CRAWLER_DOCUMENT_DELAY_MS` trong `backend/.env`.
 
 ## Text preprocessing
 
